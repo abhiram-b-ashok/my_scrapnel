@@ -2,20 +2,27 @@ package com.example.myscrapnel.views.home_page
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +41,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.myscrapnel.R
-import com.example.myscrapnel.archivo
 
 @Composable
 fun Homepage(modifier: Modifier = Modifier) {
@@ -43,9 +49,10 @@ fun Homepage(modifier: Modifier = Modifier) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+
     )
     {
-        Header(headerTitle)
+        Header(headerTitle, modifier=modifier)
         ChipsAndFilter()
         ScrapnelListScreen()
 
@@ -54,11 +61,13 @@ fun Homepage(modifier: Modifier = Modifier) {
 
 
 @Composable
-fun Header(title: String) {
+fun Header(title: String, modifier: Modifier) {
     Row(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.primary)
             .padding(8.dp)
+            .then(modifier)
+            .safeDrawingPadding()
             .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -86,18 +95,6 @@ fun HomePagePreview() {
 
 
 @Composable
-fun ChipsAndFilter() {
-    Row(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.secondary)
-            .padding(8.dp)
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-    }
-}
-
-@Composable
 fun ScrapnelListScreen() {
     Box {
         LazyVerticalGrid(columns = GridCells.Fixed(2)) {
@@ -108,8 +105,10 @@ fun ScrapnelListScreen() {
     }
 }
 
+
 @Composable
 fun ScrapnelCard(fullText: String) {
+
     var firstTextViewText by remember { mutableStateOf(fullText) }
     var secondTextViewText by remember { mutableStateOf("") }
     var isOverFlowHandled by remember { mutableStateOf(false) }
@@ -121,24 +120,28 @@ fun ScrapnelCard(fullText: String) {
     }
 
     Card(
+        shape = RoundedCornerShape(4.dp),
         modifier = Modifier
             .padding(8.dp)
-            .fillMaxWidth(0.5f)
-            .height(200.dp),
+            .fillMaxWidth(0.5f),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         )
     ) {
         Box {
             Card(
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.padding(8.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                 )
             ) {
                 Box {
-                    Card(modifier = Modifier.padding(8.dp),
-                        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.tertiary) ){
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.padding(8.dp),
+                        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.tertiary)
+                    ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
@@ -148,7 +151,7 @@ fun ScrapnelCard(fullText: String) {
                             Row {
                                 Card(modifier = Modifier.padding(end = 4.dp)) {
                                     Image(
-                                        painter = painterResource(id = R.drawable.ic_launcher_background),
+                                        painter = painterResource(id = R.drawable.image_ic),
                                         contentDescription = null,
                                         modifier = Modifier.size(60.dp)
                                     )
@@ -161,7 +164,7 @@ fun ScrapnelCard(fullText: String) {
                                     modifier = Modifier.fillMaxWidth(),
                                     color = MaterialTheme.colorScheme.onSecondary,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontFamily = archivo,
+
                                     onTextLayout = { textLayoutResult ->
                                         if (!isOverFlowHandled && textLayoutResult.didOverflowHeight) {
                                             val lastVisibleCharIndex = textLayoutResult.getLineEnd(
@@ -182,12 +185,11 @@ fun ScrapnelCard(fullText: String) {
                                     modifier = Modifier.fillMaxWidth(),
                                     color = MaterialTheme.colorScheme.onSecondary,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontFamily = archivo,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            Card {
+                            Card(Modifier.padding(top = 5.dp)) {
                                 Text(
                                     text = "title",
                                     modifier = Modifier
@@ -197,7 +199,6 @@ fun ScrapnelCard(fullText: String) {
                                     textAlign = TextAlign.Center,
                                     maxLines = 1,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontFamily = archivo,
                                 )
                             }
 
@@ -209,3 +210,73 @@ fun ScrapnelCard(fullText: String) {
     }
 }
 
+
+@Composable
+fun ChipsAndFilter() {
+    var isFiltering by remember { mutableStateOf(false) }
+    var selectedChip by remember { mutableStateOf<String?>(null) }
+
+    Row(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        TitleChips(
+            chipItems = listOf(
+                "Travel",
+                "Food",
+                "Friends",
+                "Family",
+                "Breakfast",
+                "Cricket",
+                "Swimming",
+                "Tea",
+                "Temple"
+            ),
+            selectedChip = selectedChip,
+            onChipSelected = { chipSelected ->
+                selectedChip = if (selectedChip == chipSelected) null else chipSelected
+            }
+        )
+
+        if (!isFiltering) {
+            IconButton(onClick = {}) {
+                Icon(
+                    imageVector = Icons.Default.List,
+                    contentDescription = "Filter"
+                )
+            }
+        }
+    }
+    if (isFiltering) {
+        Text(
+            text = "Clear Filter",
+            modifier = Modifier.clickable(onClick = {})
+        )
+    }
+}
+
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun TitleChips(
+    chipItems: List<String>,
+    selectedChip: String?,
+    onChipSelected: (String) -> Unit
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(0.8f)
+    ) {
+        chipItems.forEach { chip ->
+            FilterChip(
+                selected = selectedChip == chip,
+                onClick = { onChipSelected(chip) },
+                label = { Text(chip) }
+            )
+        }
+    }
+}

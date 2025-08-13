@@ -51,12 +51,8 @@ fun GreetingPreview() {
     }
 }
 
-val archivo = FontFamily(
-    Font(R.font.archivo_regular, FontWeight.Normal),
-    Font(R.font.archivo_medium, FontWeight.Medium),
-    Font(R.font.archivo_bold, FontWeight.Bold),
-    Font(R.font.archivo_semibold, FontWeight.SemiBold),
-    Font(R.font.archivo_extrabold, FontWeight.ExtraBold),
-    Font(R.font.archivo_italic, FontWeight.ExtraLight)
+
+
+val poppins = FontFamily(
 
 )
