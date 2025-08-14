@@ -16,7 +16,6 @@ val PoppinsFontFamily = FontFamily(
     Font(R.font.poppins_bold, FontWeight.Bold),
     Font(R.font.poppins_italic, FontWeight.Normal, FontStyle.Italic)
 )
-// Set of Material typography styles to start with
 val MyTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = PoppinsFontFamily,
