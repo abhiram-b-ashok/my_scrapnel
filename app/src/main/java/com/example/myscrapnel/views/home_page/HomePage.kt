@@ -10,12 +10,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -84,8 +88,14 @@ fun Header(title: String, modifier: Modifier) {
         modifier = Modifier
             .background(MaterialTheme.colorScheme.primary)
             .fillMaxWidth()
-            .systemBarsPadding()
-            .padding(15.dp)
+            .padding(
+                PaddingValues(
+                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                    start = 15.dp,
+                    end = 15.dp,
+                    bottom = 8.dp // optional, adjust as needed
+                )
+            )
     ) {
         Text(
             text = title, modifier = Modifier.weight(1f),
@@ -115,11 +125,13 @@ fun ScrapnelListScreen() {
     Box {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(12.dp),
         ) {
             items(10) {
                 ScrapnelCard(
-                    "This was one of the most memorable day in my life since I was a kid.",
+                    "This was one of the most memorable day in my life since I was a kid. And i am happy with my friends and family today and totally happy with my self.",
                     true
                 )
             }
@@ -130,50 +142,61 @@ fun ScrapnelListScreen() {
 
 @Composable
 fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
-
     var firstTextViewText by rememberSaveable { mutableStateOf(fullText) }
     var secondTextViewText by rememberSaveable { mutableStateOf("") }
     var isOverFlowHandled by rememberSaveable { mutableStateOf(false) }
     var isChecked by remember { mutableStateOf(false) }
 
-//    LaunchedEffect(fullText) {
-//        firstTextViewText = fullText
-//        secondTextViewText = ""
-//        isOverFlowHandled = false
-//    }
-
-
     Box(
-        modifier = Modifier.height(200.dp)
-            .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary).padding(8.dp)
+        modifier = Modifier
+            .height(235.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.primary)
+            .padding(8.dp)
     ) {
-
-        Box(modifier = Modifier.fillMaxSize().align(Alignment.Center)
-            .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.tertiary)) {
-
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.tertiary)
+                .padding(6.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(6.dp)
+                        .weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row {
-                        Card(modifier = Modifier.padding(end = 4.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(79.dp),
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .width(79.dp)
+                                .height(79.dp)
+                                .padding(end = 6.dp)
+                        ) {
                             Image(
                                 painter = painterResource(id = R.drawable.image_ic),
                                 contentDescription = null,
-                                modifier = Modifier.size(60.dp),
-                                contentScale= ContentScale.Crop
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
 
-
                         Text(
                             text = firstTextViewText,
-                            maxLines = 3,
+                            maxLines = 4,
+                            overflow = TextOverflow.Clip,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 10.dp),
+                                .weight(1f)
+                                .fillMaxHeight(),
                             color = MaterialTheme.colorScheme.onSecondary,
                             style = MaterialTheme.typography.bodyMedium,
                             onTextLayout = { textLayoutResult ->
@@ -182,55 +205,56 @@ fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
                                         lineIndex = textLayoutResult.lineCount - 1,
                                         visibleEnd = true
                                     )
-                                    firstTextViewText =
-                                        fullText.substring(0, lastVisibleCharIndex)
-                                    secondTextViewText =
-                                        fullText.substring(lastVisibleCharIndex)
+                                    firstTextViewText = fullText.substring(0, lastVisibleCharIndex)
+                                    secondTextViewText = fullText.substring(lastVisibleCharIndex)
                                     isOverFlowHandled = true
                                 }
                             }
                         )
                     }
 
-
                     Text(
                         text = secondTextViewText,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 5.dp)
+                            .heightIn(min = 48.dp),
                         color = MaterialTheme.colorScheme.onSecondary,
                         style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 3,
+                        maxLines = 4,
                         overflow = TextOverflow.Ellipsis
                     )
-
-                    Card(Modifier.padding(top = 5.dp), shape = RoundedCornerShape(5.dp)) {
-                        Text(
-                            text = "title",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(brush = verticalGradientBrushDark),
-                            color = MaterialTheme.colorScheme.onTertiary,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
-
                 }
 
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    shape = RoundedCornerShape(5.dp)
+                ) {
+                    Text(
+                        text = "title",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(brush = verticalGradientBrushDark)
+                            .padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.onTertiary,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
         }
 
         if (isChecked) {
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .fillMaxHeight()
-                    .fillMaxWidth()
-                    .padding(8.dp)
+                    .fillMaxSize()
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.Red.copy(alpha = 0.4f))
-            )
-            {
-
+            ) {
                 Image(
                     painter = painterResource(R.drawable.ic_cross),
                     contentDescription = "Delete",
@@ -239,14 +263,14 @@ fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
                         .size(100.dp),
                 )
             }
-
         }
+
         if (isDeleting) {
             Checkbox(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(bottom = 10.dp, start = 10.dp),
-                checked = isChecked, onCheckedChange = { isChecked = it },
+                    .align(Alignment.TopEnd),
+                checked = isChecked,
+                onCheckedChange = { isChecked = it },
                 colors = CheckboxDefaults.colors(
                     checkedColor = MaterialTheme.colorScheme.secondary,
                     uncheckedColor = MaterialTheme.colorScheme.onSecondary,
@@ -256,6 +280,9 @@ fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
         }
     }
 }
+
+
+
 
 
 @Composable
