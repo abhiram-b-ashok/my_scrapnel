@@ -17,6 +17,108 @@ val DarkAccent2 = Color(0xFFB39BC8)
 val DarkHighlight = Color(0xFF93C8E8)
 val DarkText = Color(0xFFF0EAE4)
 
+
+
+// 🌞 Light theme gradients
+val LightPrimaryVertical = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFFFFC4D6), // primary light
+        Color(0xFFFFAFC6),
+        Color(0xFFFF97B5)
+    )
+)
+
+val LightPrimaryRadial = Brush.radialGradient(
+    colors = listOf(
+        Color(0xFFFF97B5),
+        Color(0xFFFFAFC6),
+        Color(0xFFFFC4D6)
+    )
+)
+
+val LightSecondaryVertical = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFFCDB4DB),
+        Color(0xFFBFA0CF),
+        Color(0xFFAC89C0)
+    )
+)
+
+val LightSecondaryRadial = Brush.radialGradient(
+    colors = listOf(
+        Color(0xFFAC89C0),
+        Color(0xFFBFA0CF),
+        Color(0xFFCDB4DB)
+    )
+)
+
+val LightTertiaryVertical = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFFBDE0FE),
+        Color(0xFFA9D3FB),
+        Color(0xFF94C4F5)
+    )
+)
+
+val LightTertiaryRadial = Brush.radialGradient(
+    colors = listOf(
+        Color(0xFF94C4F5),
+        Color(0xFFA9D3FB),
+        Color(0xFFBDE0FE)
+    )
+)
+
+
+// 🌚 Dark theme gradients
+val DarkPrimaryVertical = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFFEFA1B5),
+        Color(0xFFE888A2),
+        Color(0xFFDE6C8F)
+    )
+)
+
+val DarkPrimaryRadial = Brush.radialGradient(
+    colors = listOf(
+        Color(0xFFDE6C8F),
+        Color(0xFFE888A2),
+        Color(0xFFEFA1B5)
+    )
+)
+
+val DarkSecondaryVertical = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFFB39BC8),
+        Color(0xFFA486BE),
+        Color(0xFF9170AE)
+    )
+)
+
+val DarkSecondaryRadial = Brush.radialGradient(
+    colors = listOf(
+        Color(0xFF9170AE),
+        Color(0xFFA486BE),
+        Color(0xFFB39BC8)
+    )
+)
+
+val DarkTertiaryVertical = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFF93C8E8),
+        Color(0xFF7CB7DD),
+        Color(0xFF64A3D2)
+    )
+)
+
+val DarkTertiaryRadial = Brush.radialGradient(
+    colors = listOf(
+        Color(0xFF64A3D2),
+        Color(0xFF7CB7DD),
+        Color(0xFF93C8E8)
+    )
+)
+
+
 val gradientColorsLight = listOf(Color(0xFFFFC4D6), Color(0xFFCDB4DB), Color(0xFFBDE0FE))
 val gradientColorsDark = listOf(Color(0xFFEFA1B5), Color(0xFFB39BC8), Color(0xFF93C8E8))
 

@@ -9,33 +9,34 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-
-private val DarkColorScheme = darkColorScheme(
-    background = DarkBackground,
-    surface = DarkBackground,
-    primary = DarkAccent1,
-    secondary = DarkAccent2,
-    tertiary = DarkHighlight,
-    onBackground = DarkText,
-    onSurface = DarkText,
-    onPrimary = DarkText,
-    onSecondary = DarkText,
-    onTertiary = DarkText,
+val LightColorScheme = lightColorScheme(
+    background = Color(0xFFFFF5E4),
+    primary = Color(0xFFFFC4D6),
+    onPrimary = Color(0xFF4F4F4F),
+    secondary = Color(0xFFCDB4DB),
+    onSecondary = Color(0xFF3E3A47),
+    tertiary = Color(0xFFBDE0FE),
+    onTertiary = Color(0xFF2C2C2C),
+    onBackground = Color(0xFF4F4F4F),
+    surface = Color.White,
+    onSurface = Color(0xFF333333)
 )
 
-private val LightColorScheme = lightColorScheme(
-    background = LightBackground,
-    surface = LightBackground,
-    primary = LightAccent1,
-    secondary = LightAccent2,
-    tertiary = LightHighlight,
-    onBackground = LightText,
-    onSurface = LightText,
-    onPrimary = LightText,
-    onSecondary = LightText,
-    onTertiary = LightText,
+val DarkColorScheme = darkColorScheme(
+    background = Color(0xFF1E1B1E),
+    primary = Color(0xFFEFA1B5),
+    onPrimary = Color(0xFF1E1B1E),
+    secondary = Color(0xFFB39BC8),
+    onSecondary = Color(0xFF1E1B1E),
+    tertiary = Color(0xFF93C8E8),
+    onTertiary = Color(0xFF1E1B1E),
+    onBackground = Color(0xFFF0EAE4),
+    surface = Color(0xFF262326),
+    onSurface = Color(0xFFEDEDED)
 )
+
 
 @Composable
 fun MyScrapnelTheme(
