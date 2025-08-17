@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import com.example.myscrapnel.ui.theme.MyScrapnelTheme
+import com.example.myscrapnel.views.create_scrapnel_page.CreateScrapnelPage
 import com.example.myscrapnel.views.home_page.Homepage
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
@@ -38,7 +39,7 @@ class MainActivity : ComponentActivity() {
                     // Status bar: same color as header
                     systemUiController.setStatusBarColor(
                         color = colorScheme.primary,
-                        darkIcons = false
+                        darkIcons = colorScheme.background.luminance() > 0.5f
                     )
                     // Nav bar: match background
                     systemUiController.setNavigationBarColor(
@@ -56,7 +57,7 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         content = { innerPadding ->
-                            Homepage(
+                            CreateScrapnelPage(
                                 modifier = Modifier.padding(innerPadding)
                             )
                         }

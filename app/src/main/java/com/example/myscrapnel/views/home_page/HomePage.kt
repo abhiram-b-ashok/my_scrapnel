@@ -1,10 +1,8 @@
 package com.example.myscrapnel.views.home_page
 
-import android.R.attr.maxLines
-import androidx.compose.foundation.BorderStroke
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,15 +12,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -31,8 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -45,6 +38,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,35 +58,60 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.myscrapnel.R
-import com.example.myscrapnel.ui.theme.LightPrimaryVertical
-import com.example.myscrapnel.ui.theme.verticalGradientBrushDark
+
 
 @Composable
 fun Homepage(modifier: Modifier = Modifier) {
     val headerTitle by remember { mutableStateOf("My Scrapnel") }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
 
-    )
-    {
-        Header(headerTitle, modifier = modifier)
-        Main()
+    var isShowDialog by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Header(
+            headerTitle,
+            modifier = modifier,
+            showDialog = { isShowDialog = true },
+            startDelete = { isDeleting = !isDeleting }
+        )
+
+        Main(isDeleting = isDeleting)
+
+        FilterDialog(
+            onFilterApplied = { filterType, filterValue ->
+                isShowDialog = false
+            },
+            isShowDialog = isShowDialog,
+            onDismiss = { isShowDialog = false }
+        )
     }
 }
 
+
+
 @Composable
-fun Main() {
-    val scrapnels: List<String> =
-        listOf("This was one of the most memorable day in my life since I was a kid. And i am happy with my friends and family today and totally happy with my self.")
+private fun Main(isDeleting: Boolean) {
+    val scrapnels: List<String> = listOf(
+        "This was one of the most memorable day...", "This was one of the most memorable day...", "This was one of the most memorable day...", "This was one of the most memorable day...",
+    )
+//    val scrapnels : List<String> = emptyList()
+
     Column {
         ChipsAndFilter()
-        ScrapnelListScreen(scrapnels, onCreateScrapnelClick = {})
+        ScrapnelListScreen(scrapnels, isDeleting, onCreateScrapnelClick = {})
     }
 }
 
+
 @Composable
-fun Header(title: String, modifier: Modifier) {
+private fun Header(
+    title: String,
+    modifier: Modifier,
+    showDialog: () -> Unit,
+    startDelete: () -> Unit
+) {
     Row(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.background)
@@ -102,18 +121,18 @@ fun Header(title: String, modifier: Modifier) {
                     top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
                     start = 15.dp,
                     end = 15.dp,
-                    bottom = 8.dp // optional, adjust as needed
+                    bottom = 8.dp
                 )
             )
     ) {
-
         Text(
-            text = title, modifier = Modifier.weight(1f),
+            text = title,
+            modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.headlineLarge
         )
-        Row (modifier = Modifier.width(70.dp)){
-            IconButton(onClick = {}) {
+        Row(modifier = Modifier.width(70.dp)) {
+            IconButton(onClick = { startDelete() }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_delete),
                     contentDescription = "Delete",
@@ -121,7 +140,7 @@ fun Header(title: String, modifier: Modifier) {
                     modifier = Modifier.size(20.dp)
                 )
             }
-            IconButton(onClick = {}) {
+            IconButton(onClick = { showDialog() }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_filter),
                     contentDescription = "Filter",
@@ -130,9 +149,9 @@ fun Header(title: String, modifier: Modifier) {
                 )
             }
         }
-
     }
 }
+
 
 
 @Preview(showBackground = true)
@@ -143,7 +162,11 @@ fun HomePagePreview() {
 
 
 @Composable
-fun ScrapnelListScreen(scrapnels: List<String>, onCreateScrapnelClick: () -> Unit) {
+fun ScrapnelListScreen(
+    scrapnels: List<String>,
+    isDeleting: Boolean,
+    onCreateScrapnelClick: () -> Unit
+) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (scrapnels.isEmpty()) {
             Column(
@@ -168,20 +191,15 @@ fun ScrapnelListScreen(scrapnels: List<String>, onCreateScrapnelClick: () -> Uni
                     modifier = Modifier.padding(top = 20.dp),
                     textAlign = TextAlign.Center
                 )
-            }
-
-        } else {
+            }        } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(16.dp),
             ) {
-                items(10) {
-                    ScrapnelCard(
-                        "This was one of the most memorable day in my life since I was a kid. And i am happy with my friends and family today and totally happy with my self.",
-                        true
-                    )
+                items(scrapnels.size) {
+                    ScrapnelCard(scrapnels[it], isDeleting)
                 }
             }
             FloatingActionButton(
@@ -195,9 +213,9 @@ fun ScrapnelListScreen(scrapnels: List<String>, onCreateScrapnelClick: () -> Uni
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Create Scrapnel", modifier = Modifier.size(30.dp))
             }
+
+
         }
-
-
     }
 }
 
@@ -500,53 +518,67 @@ fun TitleChips(
 
 
 @Composable
-fun FilterDialog() {
-
-    var isShowDialog by remember { mutableStateOf(false) }
-    var inputText by remember { mutableStateOf("") }
-
-    Button(onClick = { isShowDialog = true }) {
-        Text("Show Alert")
-    }
+fun FilterDialog(
+    onFilterApplied: (String, String) -> Unit,
+    isShowDialog: Boolean,
+    onDismiss: () -> Unit
+) {
+    var titleInput by remember { mutableStateOf("") }
+    var dateInput by remember { mutableStateOf("") }
+    var selectedFilter by remember { mutableStateOf("title") }
 
     if (isShowDialog) {
         AlertDialog(
-            onDismissRequest = { isShowDialog = false },
-            title = { Text("Filter by") },
+            onDismissRequest = { onDismiss() },
+            title = { Text("Filter Options") },
             text = {
                 Column {
                     OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        label = { Text("title") }
+                        value = titleInput,
+                        onValueChange = {
+                            titleInput = it
+                            if (it.isNotEmpty()) dateInput = ""
+                            selectedFilter = "title"
+                        },
+                        label = { Text("Filter by Title") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = dateInput.isEmpty()
                     )
                     OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        label = { Text("date") }
+                        value = dateInput,
+                        onValueChange = {
+                            dateInput = it
+                            if (it.isNotEmpty()) titleInput = ""
+                            selectedFilter = "date"
+                        },
+                        label = { Text("Filter by Date") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = titleInput.isEmpty()
                     )
                 }
             },
-
             confirmButton = {
-                Button(onClick = {
-                    isShowDialog = false
-                }) {
-                    Text("Confirm")
+                Button(
+                    onClick = {
+                        val value = if (selectedFilter == "title") titleInput else dateInput
+                        if (value.isNotBlank()) onFilterApplied(selectedFilter, value)
+                        onDismiss()
+                    }
+                ) {
+                    Text("Apply Filter")
                 }
             },
             dismissButton = {
-                IconButton(onClick = { isShowDialog = false }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Delete")
+                OutlinedButton(onClick = { onDismiss() }) {
+                    Text("Cancel")
                 }
             }
         )
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun DialogPreview() {
-    FilterDialog()
-}
+
+
 
