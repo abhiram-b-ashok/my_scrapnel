@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                 SideEffect {
                     // Status bar: same color as header
                     systemUiController.setStatusBarColor(
-                        color = colorScheme.primary,
+                        color = colorScheme.background,
                         darkIcons = colorScheme.background.luminance() > 0.5f
                     )
                     // Nav bar: match background

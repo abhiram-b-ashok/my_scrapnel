@@ -3,6 +3,7 @@ package com.example.myscrapnel.views.home_page
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.myscrapnel.R
 
 
@@ -66,6 +68,7 @@ fun Homepage(modifier: Modifier = Modifier) {
 
     var isShowDialog by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
+    var isFiltering by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -74,6 +77,8 @@ fun Homepage(modifier: Modifier = Modifier) {
             headerTitle,
             modifier = modifier,
             showDialog = { isShowDialog = true },
+            dismissDialog = { isShowDialog = false
+                isFiltering = false   },
             startDelete = { isDeleting = !isDeleting }
         )
 
@@ -84,7 +89,8 @@ fun Homepage(modifier: Modifier = Modifier) {
                 isShowDialog = false
             },
             isShowDialog = isShowDialog,
-            onDismiss = { isShowDialog = false }
+            onDismiss = { isShowDialog = false
+                isFiltering = false}
         )
     }
 }
@@ -110,8 +116,11 @@ private fun Header(
     title: String,
     modifier: Modifier,
     showDialog: () -> Unit,
-    startDelete: () -> Unit
+    dismissDialog: () -> Unit,
+    startDelete: () -> Unit,
 ) {
+    var isFiltering by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.background)
@@ -131,7 +140,7 @@ private fun Header(
             color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.headlineLarge
         )
-        Row(modifier = Modifier.width(70.dp)) {
+        Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { startDelete() }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_delete),
@@ -140,14 +149,28 @@ private fun Header(
                     modifier = Modifier.size(20.dp)
                 )
             }
-            IconButton(onClick = { showDialog() }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_filter),
-                    contentDescription = "Filter",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(18.dp)
-                )
+
+            if (!isFiltering){
+                IconButton(onClick = { showDialog()
+                isFiltering = true}) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_filter),
+                        contentDescription = "Filter",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
+            else
+            {
+
+                Text(text = "Clear", modifier = Modifier.padding(start = 4.dp)
+                    .clickable(onClick = {
+                        isFiltering = false}),
+                    color = MaterialTheme.colorScheme.onBackground)
+            }
+
+
         }
     }
 }
@@ -552,10 +575,11 @@ fun FilterDialog(
                             if (it.isNotEmpty()) titleInput = ""
                             selectedFilter = "date"
                         },
-                        label = { Text("Filter by Date") },
+                        label = { Text("yyyy/mm/dd") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = titleInput.isEmpty()
+                        enabled = titleInput.isEmpty(),
+
                     )
                 }
             },
@@ -571,10 +595,12 @@ fun FilterDialog(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { onDismiss() }) {
+                OutlinedButton(onClick = { onDismiss()
+                }) {
                     Text("Cancel")
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
         )
     }
 }
