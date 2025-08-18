@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -166,27 +167,44 @@ private fun Main(
 
 ) {
     var title by remember { mutableStateOf("") }
-    var text by remember { mutableStateOf("") }
-    var imageText by remember { mutableStateOf("") }
+
     var isSaving by remember { mutableStateOf(false) }
     var isText by remember { mutableStateOf(true) }
     var isImage by remember { mutableStateOf(false) }
     var isPreview by remember { mutableStateOf(false) }
-    val imagesLists = remember { mutableStateListOf<Uri>() }
+    var scrapnelTextField by remember { mutableStateOf("") }
+
+
+
+
+
+
+//    val pickImages =
+//        rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(3)) { uris ->
+//            if (uris.isNotEmpty()) {
+//                Log.d("PhotoPicker", "Number of items selected: ${uris.size}")
+//                imagesLists.clear()
+//                imagesLists.addAll(uris)
+//                val imageUrisText = uris.joinToString(separator = ", ")
+//                imageText = imageUrisText
+//                Log.d("PhotoPicker", "Selected URIs: $imagesLists")
+//            } else {
+//                Log.d("PhotoPicker", "No media selected")
+//            }
+//        }
 
     val pickImages =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(3)) { uris ->
             if (uris.isNotEmpty()) {
-                Log.d("PhotoPicker", "Number of items selected: ${uris.size}")
-                imagesLists.clear()
-                imagesLists.addAll(uris)
-                val imageUrisText = uris.joinToString(separator = ", ")
-                imageText = imageUrisText
-                Log.d("PhotoPicker", "Selected URIs: $imagesLists")
-            } else {
-                Log.d("PhotoPicker", "No media selected")
+                val imageUrisText = uris.joinToString(separator = "\n") { uri -> "🖼️ $uri" }
+                // Append to the existing text
+                scrapnelTextField += "\n$imageUrisText\n"
+
+
             }
         }
+
+
 
 
 
@@ -301,19 +319,32 @@ private fun Main(
             modifier = Modifier.padding(top = 16.dp)
         )
 
-        Box()
+        Box(modifier = Modifier                    .padding(top = 16.dp)
+        )
         {
-                OutlinedTextField(
+//                OutlinedTextField(
+//
+//                    onValueChange = { imageText = it }, value = imageText,
+//                    label = { Text("Write Scarpnel") },
+//                    modifier = Modifier
+//                        .padding(top = 16.dp)
+//                        .fillMaxWidth()
+//                        .height(250.dp)
+//                )
+            OutlinedTextField(
+                value = scrapnelTextField,
+                onValueChange = { scrapnelTextField = it },
+                label = { Text("Write Scrapnel") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp),
+                singleLine = false
+            )
 
-                    onValueChange = { imageText = it }, value = imageText,
-                    label = { Text("Write Scarpnel") },
-                    modifier = Modifier
-                        .padding(top = 16.dp)
-                        .fillMaxWidth()
-                        .height(250.dp)
-                )
 
-                Row(modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd)) {
+
+
+            Row(modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd)) {
                     IconButton(onClick = { isText = !isText }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_text),
@@ -348,36 +379,66 @@ private fun Main(
                         )
                     }
                 }
-                if (isImage) {
-                    Box(
-                        modifier = Modifier.matchParentSize().background(Color.Transparent),
-                        contentAlignment = androidx.compose.ui.Alignment.Center,
-                    )
-                    {
-                        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally, ) {
-                            IconButton(onClick = {pickImages.launch(
+            if (isImage) {
+                Box(
+                    modifier = Modifier
+                        .align(androidx.compose.ui.Alignment.Center)
+                        .size(200.dp, 150.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xAA000000)),
+                    contentAlignment = androidx.compose.ui.Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    ) {
+                        IconButton(onClick = {
+                            pickImages.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            ) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Select Image",
-                                    tint = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.size(30.dp)
-                                )
-
-                            }
-                            Text(text = "Select Images", modifier = Modifier.padding(top = 4.dp), textAlign = TextAlign.Center)
-
+                            )
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Select Image",
+                                tint = Color.White,
+                                modifier = Modifier.size(30.dp)
+                            )
                         }
+                        Text(
+                            text = "Select Images",
+                            modifier = Modifier.padding(top = 4.dp),
+                            textAlign = TextAlign.Center,
+                            color = Color.White
+                        )
                     }
                 }
+            }
+
+            if (isPreview) {
+                PreviewScrapnelDialog(
+                    title = title,
+                    scrapnelText = scrapnelTextField,
+                    year = year,
+                    month = month,
+                    day = day,
+                    hour = hour,
+                    minute = minute,
+                    onDismiss = { isPreview = false },
+                    onSaveClick = {
+                        // Call your DB insert function here
+                        isSaving = true
+                        // Maybe reset fields after saving?
+                    }
+                )
+            }
+
 
 
         }
 
         FilledTonalButton(
             shape = RoundedCornerShape(16.dp),
-            onClick = { },
+            onClick = {}
+            ,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 36.dp),
@@ -479,8 +540,9 @@ fun TimeSelectDialog(
 ) {
     var selectedHour by remember { mutableStateOf(0) }
     var selectedMinute by remember { mutableStateOf(0) }
-    val hours = (0..23).toList()
-    val minutes = (0..59).toList()
+
+    val hourStrings = (0..23).map { it.toString().padStart(2, '0') }
+    val minuteStrings = (0..59).map { it.toString().padStart(2, '0') }
 
     if (isShowDialog) {
         AlertDialog(
@@ -505,15 +567,15 @@ fun TimeSelectDialog(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    NumberPickerView(
+                    NumberPickerStringView(
+                        displayedValues = hourStrings,
                         value = selectedHour,
-                        range = hours,
                         onValueChange = { selectedHour = it }
                     )
 
-                    NumberPickerView(
+                    NumberPickerStringView(
+                        displayedValues = minuteStrings,
                         value = selectedMinute,
-                        range = minutes,
                         onValueChange = { selectedMinute = it }
                     )
                 }
@@ -522,6 +584,7 @@ fun TimeSelectDialog(
         )
     }
 }
+
 
 @Composable
 fun NumberPickerStringView(
