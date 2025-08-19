@@ -48,6 +48,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -167,14 +169,14 @@ private fun Main(
 
 ) {
     var title by remember { mutableStateOf("") }
-
-    var isSaving by remember { mutableStateOf(false) }
+    var scrapnelTextField by remember { mutableStateOf("") }
     var isText by remember { mutableStateOf(true) }
     var isImage by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
     var isPreview by remember { mutableStateOf(false) }
-    var scrapnelTextField by remember { mutableStateOf("") }
+    val month = months[month.toInt()-1].name
 
-
+    Log.d("montheyyyyy", month)
 
 
 
@@ -182,14 +184,11 @@ private fun Main(
 //    val pickImages =
 //        rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(3)) { uris ->
 //            if (uris.isNotEmpty()) {
-//                Log.d("PhotoPicker", "Number of items selected: ${uris.size}")
 //                imagesLists.clear()
 //                imagesLists.addAll(uris)
 //                val imageUrisText = uris.joinToString(separator = ", ")
 //                imageText = imageUrisText
 //                Log.d("PhotoPicker", "Selected URIs: $imagesLists")
-//            } else {
-//                Log.d("PhotoPicker", "No media selected")
 //            }
 //        }
 
@@ -197,15 +196,11 @@ private fun Main(
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(3)) { uris ->
             if (uris.isNotEmpty()) {
                 val imageUrisText = uris.joinToString(separator = "\n") { uri -> "🖼️ $uri" }
-                // Append to the existing text
                 scrapnelTextField += "\n$imageUrisText\n"
 
 
             }
         }
-
-
-
 
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -319,33 +314,37 @@ private fun Main(
             modifier = Modifier.padding(top = 16.dp)
         )
 
-        Box(modifier = Modifier                    .padding(top = 16.dp)
+        Box(modifier = Modifier.padding(top = 16.dp)
         )
         {
-//                OutlinedTextField(
-//
-//                    onValueChange = { imageText = it }, value = imageText,
-//                    label = { Text("Write Scarpnel") },
-//                    modifier = Modifier
-//                        .padding(top = 16.dp)
-//                        .fillMaxWidth()
-//                        .height(250.dp)
-//                )
+            val focusManager = LocalFocusManager.current
+            val focusRequester = remember { FocusRequester() }
+
+
             OutlinedTextField(
                 value = scrapnelTextField,
                 onValueChange = { scrapnelTextField = it },
                 label = { Text("Write Scrapnel") },
+                textStyle = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(250.dp),
+                    .height(250.dp).focusRequester(focusRequester)
+                ,
                 singleLine = false
             )
 
 
-
-
             Row(modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd)) {
-                    IconButton(onClick = { isText = !isText }) {
+                    IconButton(onClick = { isText = !isText
+                        if (!isText)
+                        {
+                            focusManager.clearFocus()
+                        }
+                        else{
+                            focusRequester.requestFocus()
+                        }
+
+                    }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_text),
                             contentDescription = "Camera",
@@ -354,7 +353,8 @@ private fun Main(
                         )
 
                     }
-                    IconButton(onClick = {isImage= ! isImage }) {
+                    IconButton(onClick = {isImage= ! isImage
+                    }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_image),
                             contentDescription = "Location",
@@ -362,7 +362,8 @@ private fun Main(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = { isSaving= ! isSaving }) {
+                    IconButton(onClick = { isSaving= ! isSaving
+                    }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_save),
                             contentDescription = "Link",
@@ -395,6 +396,7 @@ private fun Main(
                             pickImages.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
+                            isImage = false
                         }) {
                             Icon(
                                 imageVector = Icons.Default.Add,
@@ -414,21 +416,16 @@ private fun Main(
             }
 
             if (isPreview) {
-                PreviewScrapnelDialog(
-                    title = title,
-                    scrapnelText = scrapnelTextField,
-                    year = year,
-                    month = month,
-                    day = day,
-                    hour = hour,
-                    minute = minute,
-                    onDismiss = { isPreview = false },
-                    onSaveClick = {
-                        // Call your DB insert function here
-                        isSaving = true
-                        // Maybe reset fields after saving?
-                    }
-                )
+               PreviewScrapnel(
+                   title = title,
+                   scrapnelText = scrapnelTextField,
+                   year = year,
+                   month = month,
+                   day = day,
+                   hour = hour,
+                   minute = minute,
+                   onDismiss = { isPreview = false },
+               )
             }
 
 
@@ -437,8 +434,7 @@ private fun Main(
 
         FilledTonalButton(
             shape = RoundedCornerShape(16.dp),
-            onClick = {}
-            ,
+            onClick = {},
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 36.dp),
