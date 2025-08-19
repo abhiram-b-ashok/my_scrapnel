@@ -3,11 +3,13 @@ package com.example.myscrapnel.views.create_scrapnel_page
 import android.R.attr.label
 import android.R.attr.text
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import android.widget.NumberPicker
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -60,11 +62,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.myscrapnel.R
+import com.example.myscrapnel.utils.copyImageToInternalStorage
 import java.util.Calendar
 import java.util.stream.Collectors.toList
 import kotlin.time.Duration.Companion.days
 
 
+@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
 fun CreateScrapnelPage(modifier: Modifier = Modifier) {
     val calendar = Calendar.getInstance()
@@ -157,6 +161,7 @@ private fun Header(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
 private fun Main(
     year: String,
@@ -174,33 +179,33 @@ private fun Main(
     var isImage by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var isPreview by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
     val month = months[month.toInt()-1].name
-
-    Log.d("montheyyyyy", month)
-
-
-
-
-//    val pickImages =
-//        rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(3)) { uris ->
-//            if (uris.isNotEmpty()) {
-//                imagesLists.clear()
-//                imagesLists.addAll(uris)
-//                val imageUrisText = uris.joinToString(separator = ", ")
-//                imageText = imageUrisText
-//                Log.d("PhotoPicker", "Selected URIs: $imagesLists")
-//            }
-//        }
+    val context = LocalContext.current
 
     val pickImages =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(3)) { uris ->
             if (uris.isNotEmpty()) {
-                val imageUrisText = uris.joinToString(separator = "\n") { uri -> "🖼️ $uri" }
-                scrapnelTextField += "\n$imageUrisText\n"
+                val imagePaths = uris.mapNotNull { uri ->
+                    copyImageToInternalStorage(context, uri)
+                }
 
-
+                if (imagePaths.isNotEmpty()) {
+                    val imageUrisText = imagePaths.joinToString(separator = "\n") { path -> "🖼️ file://$path" }
+                    scrapnelTextField += "\n$imageUrisText\n"
+                }
             }
         }
+
+//    val pickImages =
+//        rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(3)) { uris ->
+//            if (uris.isNotEmpty()) {
+//                val imageUrisText = uris.joinToString(separator = "\n") { uri -> "🖼️ $uri" }
+//                scrapnelTextField += "\n$imageUrisText\n"
+//
+//
+//            }
+//        }
 
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -354,6 +359,7 @@ private fun Main(
 
                     }
                     IconButton(onClick = {isImage= ! isImage
+                        isText = false
                     }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_image),
@@ -362,8 +368,11 @@ private fun Main(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = { isSaving= ! isSaving
-                    }) {
+                    IconButton(onClick = {  if (title.isBlank() || scrapnelTextField.isBlank()) {
+                        showErrorDialog = true
+                    } else {
+                        isSaving = !isSaving
+                    }}) {
                         Icon(
                             painter = painterResource(R.drawable.ic_save),
                             contentDescription = "Link",
@@ -371,7 +380,12 @@ private fun Main(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = { isPreview = !isPreview }) {
+                    IconButton(onClick = { if (title.isBlank() || scrapnelTextField.isBlank()) {
+                        showErrorDialog = true
+                    } else {
+                        isPreview = true
+                    }
+                    }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_preview),
                             contentDescription = "Emoji",
@@ -428,13 +442,34 @@ private fun Main(
                )
             }
 
+            if (showErrorDialog) {
+                AlertDialog(
+                    onDismissRequest = { showErrorDialog = false },
+                    confirmButton = {
+                        Button(onClick = { showErrorDialog = false }) {
+                            Text("OK")
+                        }
+                    },
+                    title = { Text("Validation Error", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground) },
+                    text = { Text("Enter All Fields", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground) },
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            }
+
+
 
 
         }
 
         FilledTonalButton(
             shape = RoundedCornerShape(16.dp),
-            onClick = {},
+            onClick = {
+                if (title.isBlank() || scrapnelTextField.isBlank()) {
+                    showErrorDialog = true
+                } else {
+                    isSaving = true
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 36.dp),
