@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -376,14 +377,20 @@ fun ScrapnelCard(item: ScrapnelUiModel, isDeleting: Boolean, ) {
 //                        maxLines = 4,
 //                        overflow = TextOverflow.Ellipsis
 //                    )
+                        val hasText = item.fullText.isNotBlank()
+
                         Text(
-                            text = item.fullText,
+                            text = if (hasText) item.fullText else " ",
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = if (hasText) MaterialTheme.colorScheme.onSurface else Color.Transparent,
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(5.dp)
-                            )
+                            modifier = Modifier
+                                .padding(5.dp)
+                                .heightIn(min = 48.dp)
+                        )
+
+
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))

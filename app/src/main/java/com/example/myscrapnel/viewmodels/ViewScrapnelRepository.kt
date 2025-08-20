@@ -7,24 +7,32 @@ import com.example.myscrapnel.room_db.ScrapnelDao
 class ViewScrapnelRepository(private val dao: ScrapnelDao) {
 
     suspend fun getAllScrapnelUiModels(): List<ScrapnelUiModel> {
-        val entities = dao.getAllScrapnel()
+        val allScrapnels = dao.getAllScrapnel()
 
-        return entities.map { entity ->
+        return allScrapnels.map { entity ->
             val lines = entity.content.lines()
 
-            val imageLines = lines.filter { it.startsWith("🖼️ file://") }
-            val firstImageUri = imageLines.firstOrNull()?.removePrefix("🖼️ ") // optional fallback to "" if needed
+            val imageUris = mutableListOf<String>()
+            val textLines = mutableListOf<String>()
 
-            val textLines = lines.filterNot { it.startsWith("🖼️ file://") }
-            val cleanText = textLines.joinToString("\n").trim()
+            lines.forEach { line ->
+                if (line.isBlank()) return@forEach
+
+                if (line.startsWith("🖼️")) {
+                    imageUris.add(line.removePrefix("🖼️ ").trim())
+                } else {
+                    textLines.add(line)
+                }
+            }
 
             ScrapnelUiModel(
                 title = entity.title,
-                fullText = cleanText,
-                firstImageUri = firstImageUri,
+                fullText = textLines.joinToString("\n").trim(),
+                firstImageUri = imageUris.firstOrNull(),
                 timeStamp = entity.timeStamp,
                 createdAt = entity.createdAt
             )
         }
     }
 }
+
