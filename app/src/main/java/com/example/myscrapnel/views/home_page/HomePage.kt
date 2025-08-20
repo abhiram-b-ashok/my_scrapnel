@@ -1,6 +1,8 @@
 package com.example.myscrapnel.views.home_page
 
 
+import android.util.Log
+import android.util.Log.v
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,7 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
@@ -43,6 +44,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,22 +56,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.room.Room
+import coil.compose.rememberAsyncImagePainter
 import com.example.myscrapnel.R
+import com.example.myscrapnel.models.scrapnel_tf_content.ScrapnelUiModel
+import com.example.myscrapnel.room_db.ScrapnelDatabase
+import com.example.myscrapnel.room_db.ScrapnelEntity
+import com.example.myscrapnel.viewmodels.ViewScrapnelRepository
+import com.example.myscrapnel.viewmodels.ViewScrapnelViewModel
+import com.example.myscrapnel.viewmodels.ViewScrapnelViewModelFactory
 
 
 @Composable
-fun Homepage(modifier: Modifier = Modifier) {
+fun Homepage(modifier: Modifier = Modifier, navController: NavController) {
     val headerTitle by remember { mutableStateOf("My Scrapnel") }
 
     var isShowDialog by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     var isFiltering by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val database = Room.databaseBuilder(
+        context,
+        ScrapnelDatabase::class.java,
+        "scrapnel_db"
+    ).build()
+    val scrapnelRepository = ViewScrapnelRepository(database.dao())
+    val scrapnelViewModelFactory = ViewScrapnelViewModelFactory(scrapnelRepository)
+    val scrapnelViewModel : ViewScrapnelViewModel = viewModel(factory = scrapnelViewModelFactory)
+
+
+
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -82,7 +106,7 @@ fun Homepage(modifier: Modifier = Modifier) {
             startDelete = { isDeleting = !isDeleting }
         )
 
-        Main(isDeleting = isDeleting)
+        Main(isDeleting = isDeleting, navController, scrapnelViewModel)
 
         FilterDialog(
             onFilterApplied = { filterType, filterValue ->
@@ -98,15 +122,27 @@ fun Homepage(modifier: Modifier = Modifier) {
 
 
 @Composable
-private fun Main(isDeleting: Boolean) {
-    val scrapnels: List<String> = listOf(
-        "This was one of the most memorable day...", "This was one of the most memorable day...", "This was one of the most memorable day...", "This was one of the most memorable day...",
-    )
+private fun Main(isDeleting: Boolean, navController: NavController, scrapnelViewModel: ViewScrapnelViewModel) {
+    var scrapnels by remember { mutableStateOf<List<ScrapnelEntity>>(emptyList()) }
+    var chipsList by remember { mutableStateOf<List<String>>(emptyList()) }
+    val context = LocalContext.current
 //    val scrapnels : List<String> = emptyList()
+    val scrapnelDatabase = Room.databaseBuilder(
+        context,
+        ScrapnelDatabase::class.java,
+        "scrapnel_db"
+    ).build()
+
+    LaunchedEffect(scrapnels, chipsList) {
+        scrapnels = scrapnelDatabase.dao().getAllScrapnel()
+        chipsList = scrapnelDatabase.dao().getScrapnelTitleChips()
+        Log.d("ScrapnelDatabaseContent", "${scrapnels}")
+        Log.d("ScrapnelDatabaseContent", "${chipsList}")
+    }
 
     Column {
-        ChipsAndFilter()
-        ScrapnelListScreen(scrapnels, isDeleting, onCreateScrapnelClick = {})
+        ChipsAndFilter(chipsList)
+        ScrapnelListScreen(scrapnels, isDeleting, onCreateScrapnelClick = {}, navController, scrapnelViewModel)
     }
 }
 
@@ -177,19 +213,21 @@ private fun Header(
 
 
 
-@Preview(showBackground = true)
-@Composable
-fun HomePagePreview() {
-    Homepage()
-}
-
 
 @Composable
 fun ScrapnelListScreen(
-    scrapnels: List<String>,
+    scrapnels: List<ScrapnelEntity>,
     isDeleting: Boolean,
-    onCreateScrapnelClick: () -> Unit
+    onCreateScrapnelClick: () -> Unit,
+    navController: NavController,
+    scrapnelViewModel: ViewScrapnelViewModel
 ) {
+
+    val scrapnelItems by scrapnelViewModel.scrapnelItems.collectAsState()
+    LaunchedEffect(Unit) {
+        scrapnelViewModel.loadScrapnels()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         if (scrapnels.isEmpty()) {
             Column(
@@ -199,7 +237,8 @@ fun ScrapnelListScreen(
 
 
                 FloatingActionButton(
-                    onClick = { onCreateScrapnelClick() },
+                    onClick = { navController.navigate("create") {
+                    } },
                     modifier = Modifier,
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -221,12 +260,13 @@ fun ScrapnelListScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(16.dp),
             ) {
-                items(scrapnels.size) {
-                    ScrapnelCard(scrapnels[it], isDeleting)
+                items(scrapnelItems.size) {
+                    ScrapnelCard(scrapnelItems[it],  isDeleting, )
                 }
             }
             FloatingActionButton(
-                onClick = { onCreateScrapnelClick() },
+                onClick = {  navController.navigate("create") {
+                } },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
@@ -244,10 +284,8 @@ fun ScrapnelListScreen(
 
 
 @Composable
-fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
-    var firstTextViewText by rememberSaveable { mutableStateOf(fullText) }
-    var secondTextViewText by rememberSaveable { mutableStateOf("") }
-    var isOverFlowHandled by rememberSaveable { mutableStateOf(false) }
+fun ScrapnelCard(item: ScrapnelUiModel, isDeleting: Boolean, ) {
+
     var isChecked by remember { mutableStateOf(false) }
 
     Card(modifier = Modifier.height(215.dp),
@@ -259,6 +297,9 @@ fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .clickable(onClick = {
+
+                })
 
         ) {
 
@@ -285,12 +326,20 @@ fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
                                     .height(79.dp)
                                     .padding(end = 6.dp)
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.image),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.FillBounds,
-                                    modifier = Modifier.fillMaxSize()
-                                )
+                                item.firstImageUri?.let {
+
+                                }
+                                item.firstImageUri?.let { imageUri ->
+                                    Image(
+                                        painter = rememberAsyncImagePainter(model = imageUri),
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(180.dp)
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
                             }
 
 //                        Text(
@@ -328,7 +377,7 @@ fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
 //                        overflow = TextOverflow.Ellipsis
 //                    )
                         Text(
-                            text = firstTextViewText,
+                            text = item.fullText,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -343,7 +392,7 @@ fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
 
                         ) {
                             Text(
-                                text = "title of the scrapnel",
+                                text = item.title,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(4.dp),
@@ -397,7 +446,7 @@ fun ScrapnelCard(fullText: String, isDeleting: Boolean) {
 
 
 @Composable
-fun ChipsAndFilter() {
+fun ChipsAndFilter(chipsList: List<String>) {
     var isFiltering by remember { mutableStateOf(false) }
     var selectedChip by remember { mutableStateOf<String?>(null) }
 
@@ -415,17 +464,7 @@ fun ChipsAndFilter() {
                 .weight(1f)
         ) {
             TitleChips(
-                chipItems = listOf(
-                    "Travel",
-                    "Food",
-                    "Friends",
-                    "Family",
-                    "Breakfast",
-                    "Cricket",
-                    "Swimming",
-                    "Tea",
-                    "Temple"
-                ),
+                chipItems = chipsList,
                 selectedChip = selectedChip,
                 onChipSelected = { chipSelected ->
                     selectedChip = if (selectedChip == chipSelected) null else chipSelected

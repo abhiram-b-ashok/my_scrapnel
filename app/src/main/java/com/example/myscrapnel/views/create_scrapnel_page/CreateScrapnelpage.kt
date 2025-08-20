@@ -1,11 +1,10 @@
 package com.example.myscrapnel.views.create_scrapnel_page
 
-import android.R.attr.label
-import android.R.attr.text
-import android.net.Uri
+
 import android.os.Build
 import android.util.Log
 import android.widget.NumberPicker
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -35,16 +33,17 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,24 +52,33 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.room.Room
 import com.example.myscrapnel.R
+import com.example.myscrapnel.room_db.ScrapnelDatabase
+import com.example.myscrapnel.room_db.ScrapnelEntity
 import com.example.myscrapnel.utils.copyImageToInternalStorage
+import com.example.myscrapnel.utils.getTimestamp
+import com.example.myscrapnel.viewmodels.MyScrapnelViewModel
+import com.example.myscrapnel.viewmodels.MyScrapnelViewModelFactory
+import com.example.myscrapnel.viewmodels.SaveScrapnelRepository
+import kotlinx.coroutines.delay
 import java.util.Calendar
-import java.util.stream.Collectors.toList
-import kotlin.time.Duration.Companion.days
 
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
-fun CreateScrapnelPage(modifier: Modifier = Modifier) {
+fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavController) {
     val calendar = Calendar.getInstance()
     var year by remember { mutableStateOf("${calendar.get(Calendar.YEAR)}") }
     var month by remember { mutableStateOf("${calendar.get(Calendar.MONTH) + 1}") }
@@ -78,12 +86,21 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier) {
     var hour by remember { mutableStateOf("00") }
     var minute by remember { mutableStateOf("00") }
 
-
     var showTimePicker by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val database = Room.databaseBuilder(
+        context,
+        ScrapnelDatabase::class.java,
+        "scrapnel_db"
+    ).build()
+    val repository = SaveScrapnelRepository(database.dao())
+    val factory = MyScrapnelViewModelFactory(repository)
+    val viewModel: MyScrapnelViewModel = viewModel(factory = factory)
+
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Header(modifier = modifier)
+        Header(modifier = modifier,navController)
 
         Main(
             year = year,
@@ -92,7 +109,8 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier) {
             hour = hour,
             minute = minute,
             onTimeClick = { showTimePicker = true },
-            onDateClick = { showDatePicker = true }
+            onDateClick = { showDatePicker = true },
+            viewModel = viewModel
         )
     }
 
@@ -114,14 +132,12 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier) {
             day = "$selectedDay"
         }
     )
-
-
 }
-
 
 @Composable
 private fun Header(
     modifier: Modifier,
+    navController: NavController
 ) {
     Row(
         modifier = Modifier
@@ -136,7 +152,8 @@ private fun Header(
                 )
             )
     ) {
-        IconButton(onClick = { }) {
+        IconButton(onClick = {  navController.navigate("home") {
+        }}) {
             Icon(
                 painter = painterResource(R.drawable.ic_back),
                 contentDescription = "Back",
@@ -170,18 +187,25 @@ private fun Main(
     hour: String,
     minute: String,
     onTimeClick: () -> Unit,
-    onDateClick: () -> Unit
+    onDateClick: () -> Unit,
+    viewModel: MyScrapnelViewModel
 
 ) {
     var title by remember { mutableStateOf("") }
-    var scrapnelTextField by remember { mutableStateOf("") }
+//    var scrapnelTextField by remember { mutableStateOf("") }
+    var scrapnelTextField by remember { mutableStateOf(TextFieldValue("")) }
+
     var isText by remember { mutableStateOf(true) }
     var isImage by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var isPreview by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
-    val month = months[month.toInt()-1].name
+    val monthName = months[month.toInt()-1].name
     val context = LocalContext.current
+    val timestamp = getTimestamp(year, month, day, hour, minute)
+    val scrapnelEntity =
+        ScrapnelEntity(timestamp, title, scrapnelTextField.text, System.currentTimeMillis())
+
 
     val pickImages =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(3)) { uris ->
@@ -192,20 +216,43 @@ private fun Main(
 
                 if (imagePaths.isNotEmpty()) {
                     val imageUrisText = imagePaths.joinToString(separator = "\n") { path -> "🖼️ file://$path" }
-                    scrapnelTextField += "\n$imageUrisText\n"
+
+                    val newText = scrapnelTextField.text + "\n$imageUrisText\n"
+                    scrapnelTextField = TextFieldValue(
+                        text = newText,
+                        selection = TextRange(newText.length) // Cursor at end
+                    )
+
                 }
             }
         }
 
-//    val pickImages =
-//        rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(3)) { uris ->
-//            if (uris.isNotEmpty()) {
-//                val imageUrisText = uris.joinToString(separator = "\n") { uri -> "🖼️ $uri" }
-//                scrapnelTextField += "\n$imageUrisText\n"
-//
-//
-//            }
-//        }
+    var saveFailureMessage by remember { mutableStateOf<String?>(null) }
+    val saveResult by viewModel.saveResult.collectAsState()
+    var showSuccessDialog by remember { mutableStateOf(false) }
+
+
+    LaunchedEffect(saveResult) {
+        saveResult.onSuccess { saved ->
+            if (saved) {
+                saveFailureMessage = null
+                delay(2000)
+             
+            }
+        }.onFailure { error ->
+            saveFailureMessage = error.message ?: "Unknown error"
+        }
+    }
+
+    LaunchedEffect(saveResult) {
+        saveResult.onSuccess { saved ->
+            if (saved) {
+                showSuccessDialog = true
+            }
+        }.onFailure { error ->
+            saveFailureMessage = error.message ?: "Unknown error"
+        }
+    }
 
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -315,8 +362,9 @@ private fun Main(
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
-            label = { Text("Title", maxLines = 1) },
-            modifier = Modifier.padding(top = 16.dp)
+            label = { Text("Title") },
+            modifier = Modifier.padding(top = 16.dp),
+            maxLines = 1,
         )
 
         Box(modifier = Modifier.padding(top = 16.dp)
@@ -368,7 +416,7 @@ private fun Main(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = {  if (title.isBlank() || scrapnelTextField.isBlank()) {
+                    IconButton(onClick = {  if (title.isBlank() || scrapnelTextField.text.isBlank()) {
                         showErrorDialog = true
                     } else {
                         isSaving = !isSaving
@@ -380,7 +428,7 @@ private fun Main(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = { if (title.isBlank() || scrapnelTextField.isBlank()) {
+                    IconButton(onClick = { if (title.isBlank() || scrapnelTextField.text.isBlank()) {
                         showErrorDialog = true
                     } else {
                         isPreview = true
@@ -432,9 +480,9 @@ private fun Main(
             if (isPreview) {
                PreviewScrapnel(
                    title = title,
-                   scrapnelText = scrapnelTextField,
+                   scrapnelText = scrapnelTextField.text,
                    year = year,
-                   month = month,
+                   month = monthName,
                    day = day,
                    hour = hour,
                    minute = minute,
@@ -455,19 +503,17 @@ private fun Main(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             }
-
-
-
-
         }
 
         FilledTonalButton(
             shape = RoundedCornerShape(16.dp),
             onClick = {
-                if (title.isBlank() || scrapnelTextField.isBlank()) {
+                if (title.isBlank() || scrapnelTextField.text.isBlank()) {
                     showErrorDialog = true
                 } else {
                     isSaving = true
+                    viewModel.saveScrapnel(scrapnelEntity)
+
                 }
             },
             modifier = Modifier
@@ -485,6 +531,35 @@ private fun Main(
             )
         }
     }
+    if (saveFailureMessage != null) {
+        AlertDialog(
+            onDismissRequest = { saveFailureMessage = null },
+            confirmButton = {
+                TextButton(onClick = { saveFailureMessage = null }) {
+                    Text("OK")
+                }
+            },
+            title = { Text("Save Blocked") },
+            text = { Text(saveFailureMessage ?: "") },
+            containerColor = MaterialTheme.colorScheme.background,
+            textContentColor = MaterialTheme.colorScheme.onBackground
+        )
+    }
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showSuccessDialog = false }) {
+                    Text("OK")
+                }
+            },
+            title = { Text("Saved Successfully") },
+            text = { Text("Your Scrapnel was saved.") },
+            containerColor = MaterialTheme.colorScheme.background,
+            textContentColor = MaterialTheme.colorScheme.onBackground
+        )
+    }
+
 }
 
 
