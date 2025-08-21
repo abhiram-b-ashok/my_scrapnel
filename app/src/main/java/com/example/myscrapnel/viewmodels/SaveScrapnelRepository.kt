@@ -5,14 +5,17 @@ import com.example.myscrapnel.room_db.ScrapnelEntity
 
 
 class SaveScrapnelRepository(private val dao: ScrapnelDao) {
+    var existingSimilarTimeStamp: Long?= null
     suspend fun isScrapnelWithinFiveMinutes(newTimestamp: Long): Boolean {
         val allTimestamps = dao.getAllTimestamps()
         val fiveMinutes = 5 * 60 * 1000 
 
         for (existingTimestamp in allTimestamps) {
             val difference = kotlin.math.abs(existingTimestamp - newTimestamp)
-            if (difference < fiveMinutes) {
-                return true 
+            if (difference <= fiveMinutes) {
+                existingSimilarTimeStamp = existingTimestamp
+                return true
+
             }
         }
 
@@ -22,7 +25,9 @@ class SaveScrapnelRepository(private val dao: ScrapnelDao) {
     suspend fun insertScrapnel(scrapnel: ScrapnelEntity) {
         dao.insertScrapnel(scrapnel)
     }
-    suspend fun getAllScrapnel(): List<ScrapnelEntity> {
-        return dao.getAllScrapnel()
+    suspend fun getTheScrapnelToEdit(timeStamp: Long): ScrapnelEntity? {
+        val scrapnel = dao.getScrapnelByTimestamp(timeStamp)
+        return scrapnel
     }
+
 }

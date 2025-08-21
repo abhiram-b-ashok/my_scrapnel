@@ -1,8 +1,8 @@
 package com.example.myscrapnel.views.home_page
 
 
+import android.annotation.SuppressLint
 import android.util.Log
-import android.util.Log.v
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,6 +35,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -48,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -67,9 +69,10 @@ import androidx.navigation.NavController
 import androidx.room.Room
 import coil.compose.rememberAsyncImagePainter
 import com.example.myscrapnel.R
-import com.example.myscrapnel.models.scrapnel_tf_content.ScrapnelUiModel
+import com.example.myscrapnel.models.scrapnel_ui_model.ScrapnelUiModel
 import com.example.myscrapnel.room_db.ScrapnelDatabase
 import com.example.myscrapnel.room_db.ScrapnelEntity
+import com.example.myscrapnel.utils.convertDdMmYyyyToTimestamp
 import com.example.myscrapnel.viewmodels.ViewScrapnelRepository
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModel
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModelFactory
@@ -77,11 +80,13 @@ import com.example.myscrapnel.viewmodels.ViewScrapnelViewModelFactory
 
 @Composable
 fun Homepage(modifier: Modifier = Modifier, navController: NavController) {
-    val headerTitle by remember { mutableStateOf("My Scrapnel") }
+    var headerTitle by remember { mutableStateOf("My Scrapnel") }
 
     var isShowDialog by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     var isFiltering by remember { mutableStateOf(false) }
+    var filterKey by rememberSaveable { mutableStateOf("") }
+
     val context = LocalContext.current
     val database = Room.databaseBuilder(
         context,
@@ -91,7 +96,6 @@ fun Homepage(modifier: Modifier = Modifier, navController: NavController) {
     val scrapnelRepository = ViewScrapnelRepository(database.dao())
     val scrapnelViewModelFactory = ViewScrapnelViewModelFactory(scrapnelRepository)
     val scrapnelViewModel : ViewScrapnelViewModel = viewModel(factory = scrapnelViewModelFactory)
-
 
 
 
@@ -105,47 +109,29 @@ fun Homepage(modifier: Modifier = Modifier, navController: NavController) {
             dismissDialog = { isShowDialog = false
                 isFiltering = false   },
             startDelete = { isDeleting = !isDeleting }
+            ,
+            isFiltering = isFiltering,
+            onClearFilter = { filterKey = ""
+                            headerTitle = "My Scrapnel"
+                            isFiltering = false},
+            scrapnelViewModel
         )
 
-        Main(isDeleting = isDeleting, navController, scrapnelViewModel)
+        Main(isDeleting = isDeleting, navController, scrapnelViewModel, isFiltering, filterKey)
 
         FilterDialog(
             onFilterApplied = { filterType, filterValue ->
                 isShowDialog = false
+                isFiltering = true
+                filterKey = filterValue
+                headerTitle = "$filterValue"
             },
             isShowDialog = isShowDialog,
-            onDismiss = { isShowDialog = false
-                isFiltering = false}
+            onDismiss = { isShowDialog = false }
         )
     }
 }
 
-
-
-@Composable
-private fun Main(isDeleting: Boolean, navController: NavController, scrapnelViewModel: ViewScrapnelViewModel) {
-    var scrapnels by remember { mutableStateOf<List<ScrapnelEntity>>(emptyList()) }
-    var chipsList by remember { mutableStateOf<List<String>>(emptyList()) }
-    val context = LocalContext.current
-//    val scrapnels : List<String> = emptyList()
-    val scrapnelDatabase = Room.databaseBuilder(
-        context,
-        ScrapnelDatabase::class.java,
-        "scrapnel_db"
-    ).build()
-
-    LaunchedEffect(scrapnels, chipsList) {
-        scrapnels = scrapnelDatabase.dao().getAllScrapnel()
-        chipsList = scrapnelDatabase.dao().getScrapnelTitleChips()
-        Log.d("ScrapnelDatabaseContent", "${scrapnels}")
-        Log.d("ScrapnelDatabaseContent", "${chipsList}")
-    }
-
-    Column {
-        ChipsAndFilter(chipsList)
-        ScrapnelListScreen(scrapnels, isDeleting, onCreateScrapnelClick = {}, navController, scrapnelViewModel)
-    }
-}
 
 
 @Composable
@@ -155,8 +141,10 @@ private fun Header(
     showDialog: () -> Unit,
     dismissDialog: () -> Unit,
     startDelete: () -> Unit,
+    isFiltering: Boolean,
+    onClearFilter: () -> Unit,
+    scrapnelViewModel: ViewScrapnelViewModel
 ) {
-    var isFiltering by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -188,8 +176,7 @@ private fun Header(
             }
 
             if (!isFiltering){
-                IconButton(onClick = { showDialog()
-                isFiltering = true}) {
+                IconButton(onClick = { showDialog() }) {
                     Icon(
                         painter = painterResource(R.drawable.ic_filter),
                         contentDescription = "Filter",
@@ -201,10 +188,17 @@ private fun Header(
             else
             {
 
-                Text(text = "Clear", modifier = Modifier.padding(start = 4.dp)
-                    .clickable(onClick = {
-                        isFiltering = false}),
-                    color = MaterialTheme.colorScheme.onBackground)
+                Text(
+                    text = "Clear",
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .clickable {
+                            scrapnelViewModel.loadScrapnels()
+                            onClearFilter()
+                        },
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
             }
 
 
@@ -214,60 +208,65 @@ private fun Header(
 
 
 
+@Composable
+private fun Main(isDeleting: Boolean, navController: NavController, scrapnelViewModel: ViewScrapnelViewModel, isFiltering: Boolean, filterKey: String ) {
+    var chipsList by remember { mutableStateOf<List<String>>(emptyList()) }
+    var scrapnelList by remember { mutableStateOf<List<ScrapnelEntity>>(emptyList()) }
+    val context = LocalContext.current
+    val scrapnelDatabase = Room.databaseBuilder(
+        context,
+        ScrapnelDatabase::class.java,
+        "scrapnel_db"
+    ).build()
+
+    LaunchedEffect( chipsList) {
+        scrapnelList = scrapnelDatabase.dao().getAllScrapnel()
+        chipsList = scrapnelDatabase.dao().getScrapnelTitleChips()
+        Log.d("ScrapnelDatabaseContent", "${chipsList}")
+    }
+
+    Column {
+        ChipsAndFilter(chipsList, isFiltering)
+        ScrapnelListScreen(filterKey, isDeleting, navController, scrapnelViewModel, isFiltering, scrapnelList )
+    }
+}
+
+
+
 
 @Composable
 fun ScrapnelListScreen(
-    scrapnels: List<ScrapnelEntity>,
+    filterKey: String,
     isDeleting: Boolean,
-    onCreateScrapnelClick: () -> Unit,
     navController: NavController,
-    scrapnelViewModel: ViewScrapnelViewModel
+    scrapnelViewModel: ViewScrapnelViewModel,
+    isFiltering: Boolean,
+    scrapnelList: List<ScrapnelEntity>
 ) {
-
     val scrapnelItems by scrapnelViewModel.scrapnelItems.collectAsState()
-    LaunchedEffect(Unit) {
-        scrapnelViewModel.loadScrapnels()
+    var isLoading by remember { mutableStateOf(true) }
+
+
+
+    LaunchedEffect(filterKey) {
+        isLoading = true
+        if (filterKey.isNotEmpty()) {
+            scrapnelViewModel.loadFilteredScrapnels(filterKey)
+        } else {
+            scrapnelViewModel.loadScrapnels()
+        }
+        isLoading = false
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (scrapnels.isEmpty()) {
-            Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-
-                FloatingActionButton(
-                    onClick = { navController.navigate("create") {
-                    } },
-                    modifier = Modifier,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = CircleShape,
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Create Scrapnel", modifier = Modifier.size(30.dp))
-                }
-
-                Text(
-                    text = "Start creating \n your day...",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(top = 20.dp),
-                    textAlign = TextAlign.Center
-                )
-            }        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(16.dp),
-            ) {
-                items(scrapnelItems.size) {
-                    ScrapnelCard(scrapnelItems[it],  isDeleting, )
-                }
-            }
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        } else if (scrapnelList.isEmpty()) {
+            EmptyScreen(navController, Modifier.align(Alignment.Center))
+        } else {
+            ScrapnelGrid(scrapnelItems, isDeleting)
             FloatingActionButton(
-                onClick = {  navController.navigate("create") {
-                } },
+                onClick = { navController.navigate("create") },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
@@ -277,11 +276,57 @@ fun ScrapnelListScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Create Scrapnel", modifier = Modifier.size(30.dp))
             }
-
-
         }
     }
 }
+
+@Composable
+fun EmptyScreen(navController: NavController, modifier: Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier.fillMaxWidth()
+    ) {
+        FloatingActionButton(
+            onClick = { navController.navigate("create") },
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = CircleShape,
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Create Scrapnel", modifier = Modifier.size(30.dp))
+        }
+        Text(
+            text = "Start creating \n your day...",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(top = 20.dp),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@SuppressLint("UnrememberedMutableState")
+@Composable
+fun ScrapnelGrid(items: List<ScrapnelUiModel>, isDeleting: Boolean) {
+    var selectedForDeletion by remember { mutableStateOf<ScrapnelUiModel?>(null) }
+    val selectedForDeleteList =  mutableStateListOf(listOf(selectedForDeletion))
+    var isDeleting by remember { mutableStateOf(isDeleting) }
+
+    if(isDeleting)
+    {
+        selectedForDeleteList
+    }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(16.dp),
+    ) {
+        items(items.size, key = { items[it].timeStamp }) {
+            ScrapnelCard(items[it], isDeleting)
+        }
+    }
+
+}
+
 
 
 @Composable
@@ -419,6 +464,7 @@ fun ScrapnelCard(item: ScrapnelUiModel, isDeleting: Boolean, ) {
                     modifier = Modifier
                         .align(Alignment.TopEnd),
                     checked = isChecked,
+
                     onCheckedChange = { isChecked = it },
                     colors = CheckboxDefaults.colors(
                         checkedColor = MaterialTheme.colorScheme.primary,
@@ -453,7 +499,7 @@ fun ScrapnelCard(item: ScrapnelUiModel, isDeleting: Boolean, ) {
 
 
 @Composable
-fun ChipsAndFilter(chipsList: List<String>) {
+fun ChipsAndFilter(chipsList: List<String>, isFiltering: Boolean) {
     var isFiltering by remember { mutableStateOf(false) }
     var selectedChip by remember { mutableStateOf<String?>(null) }
 
@@ -596,6 +642,8 @@ fun FilterDialog(
     var dateInput by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("title") }
 
+
+
     if (isShowDialog) {
         AlertDialog(
             onDismissRequest = { onDismiss() },
@@ -621,7 +669,7 @@ fun FilterDialog(
                             if (it.isNotEmpty()) titleInput = ""
                             selectedFilter = "date"
                         },
-                        label = { Text("yyyy/mm/dd") },
+                        label = { Text("dd/mm/yyyy") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = titleInput.isEmpty(),
@@ -632,8 +680,11 @@ fun FilterDialog(
             confirmButton = {
                 Button(
                     onClick = {
-                        val value = if (selectedFilter == "title") titleInput else dateInput
+                        val value = if (selectedFilter == "title") titleInput else convertDdMmYyyyToTimestamp(dateInput).toString().dropLast(8)
                         if (value.isNotBlank()) onFilterApplied(selectedFilter, value)
+                        titleInput = ""
+                        dateInput = ""
+
                         onDismiss()
                     }
                 ) {
@@ -642,6 +693,9 @@ fun FilterDialog(
             },
             dismissButton = {
                 OutlinedButton(onClick = { onDismiss()
+                    titleInput = ""
+                    dateInput = ""
+
                 }) {
                     Text("Cancel")
                 }
@@ -649,6 +703,8 @@ fun FilterDialog(
             containerColor = MaterialTheme.colorScheme.surface,
         )
     }
+
+
 }
 
 

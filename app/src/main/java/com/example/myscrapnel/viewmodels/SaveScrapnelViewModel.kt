@@ -11,8 +11,11 @@ import kotlinx.coroutines.launch
 
 class MyScrapnelViewModel(private val repository: SaveScrapnelRepository) : ViewModel() {
 
-    private val _saveResult = MutableStateFlow<Result<Boolean>>(Result.success(false))
-    val saveResult: StateFlow<Result<Boolean>> = _saveResult
+    private val _saveResult = MutableStateFlow<Result<SaveScrapnelResultModel>>(Result.success(SaveScrapnelResultModel(null, null)))
+    val saveResult: StateFlow<Result<SaveScrapnelResultModel>> = _saveResult
+
+    private val _theScrapnelToEdit = MutableStateFlow<ScrapnelEntity?>(null)
+    val theScrapnelToEdit: StateFlow<ScrapnelEntity?> = _theScrapnelToEdit
 
     fun saveScrapnel(scrapnel: ScrapnelEntity) {
         viewModelScope.launch {
@@ -20,14 +23,25 @@ class MyScrapnelViewModel(private val repository: SaveScrapnelRepository) : View
                 val existsNearby = repository.isScrapnelWithinFiveMinutes(scrapnel.timeStamp)
                 if (!existsNearby) {
                     repository.insertScrapnel(scrapnel)
-                    _saveResult.value = Result.success(true)
+                    _saveResult.value = Result.success(SaveScrapnelResultModel(true, scrapnel.timeStamp))
                 } else {
-                    _saveResult.value = Result.failure(Exception("Scrapnel already exists within 5 minutes."))
+                    val existing = repository.existingSimilarTimeStamp
+                    _saveResult.value = Result.failure(Exception("Conflict:$existing"))
                 }
+
+
+
             } catch (e: Exception) {
                 _saveResult.value = Result.failure(e)
             }
         }
     }
+    fun loadTheScrapnelToEdit(timeStamp: Long)
+    {
+        viewModelScope.launch {
+            _theScrapnelToEdit.value = repository.getTheScrapnelToEdit(timeStamp)
+        }
+    }
 }
+
 

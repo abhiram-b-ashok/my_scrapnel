@@ -22,8 +22,8 @@ interface ScrapnelDao {
     @Query("SELECT * FROM scrapnel ORDER BY timeStamp DESC")
     suspend fun getAllScrapnel(): List<ScrapnelEntity>
 
-    @Query("SELECT title FROM scrapnel ORDER BY createdAt DESC")
-    suspend fun getScrapnelTitleChips(): List<String>
+    @Query("SELECT title FROM scrapnel ORDER BY createdAt DESC LIMIT :count")
+    suspend fun getScrapnelTitleChips(count:Int= 20): List<String>
 
     @Query("SELECT * FROM scrapnel WHERE timeStamp = :timeStamp")
     suspend fun getScrapnelByTimeStamp(timeStamp: Long): ScrapnelEntity?
@@ -33,6 +33,15 @@ interface ScrapnelDao {
 
     @Query("SELECT timeStamp FROM scrapnel")
     suspend fun getAllTimestamps(): List<Long>
+
+    @Query("SELECT * FROM scrapnel WHERE title LIKE '%' || :query || '%'")
+    suspend fun searchScrapnelByTitle(query: String): List<ScrapnelEntity>
+
+    @Query("SELECT * FROM scrapnel WHERE title LIKE '%' || :query || '%' OR timeStamp LIKE '%' || :query || '%' ORDER BY timestamp DESC")
+    suspend fun searchScrapnels(query: String): List<ScrapnelEntity>
+
+    @Query("SELECT * FROM scrapnel WHERE timeStamp = :timeStamp")
+    suspend fun getScrapnelByTimestamp(timeStamp: Long): ScrapnelEntity?
 
 
 }

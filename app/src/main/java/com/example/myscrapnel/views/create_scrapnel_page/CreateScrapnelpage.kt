@@ -67,7 +67,9 @@ import androidx.room.Room
 import com.example.myscrapnel.R
 import com.example.myscrapnel.room_db.ScrapnelDatabase
 import com.example.myscrapnel.room_db.ScrapnelEntity
+import com.example.myscrapnel.utils.convertTimestampToDateTimeComponents
 import com.example.myscrapnel.utils.copyImageToInternalStorage
+import com.example.myscrapnel.utils.extractDateFromTimestamp
 import com.example.myscrapnel.utils.getTimestamp
 import com.example.myscrapnel.viewmodels.MyScrapnelViewModel
 import com.example.myscrapnel.viewmodels.MyScrapnelViewModelFactory
@@ -85,7 +87,8 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavControlle
     var day by remember { mutableStateOf("${calendar.get(Calendar.DAY_OF_MONTH)}") }
     var hour by remember { mutableStateOf("00") }
     var minute by remember { mutableStateOf("00") }
-
+    var title by remember { mutableStateOf("") }
+    var scrapnelTextField by remember { mutableStateOf("") }
     var showTimePicker by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -97,6 +100,25 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavControlle
     val repository = SaveScrapnelRepository(database.dao())
     val factory = MyScrapnelViewModelFactory(repository)
     val viewModel: MyScrapnelViewModel = viewModel(factory = factory)
+    val itemToEdit = viewModel.theScrapnelToEdit.collectAsState().value
+    val convertedTimeStamp = convertTimestampToDateTimeComponents(itemToEdit?.timeStamp ?: 0L)
+
+
+    LaunchedEffect(itemToEdit)
+    {
+        if (itemToEdit != null)
+        {
+            title = itemToEdit.title
+            scrapnelTextField = itemToEdit.content
+            year = convertedTimeStamp[2]
+            month = convertedTimeStamp[1]
+            day = convertedTimeStamp[0]
+            hour = convertedTimeStamp[3]
+            minute = convertedTimeStamp[4]
+
+        }
+    }
+
 
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -110,7 +132,10 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavControlle
             minute = minute,
             onTimeClick = { showTimePicker = true },
             onDateClick = { showDatePicker = true },
-            viewModel = viewModel
+            viewModel = viewModel,
+            title = title,
+            scrapnelTextFieldToEdit = scrapnelTextField
+
         )
     }
 
@@ -188,12 +213,14 @@ private fun Main(
     minute: String,
     onTimeClick: () -> Unit,
     onDateClick: () -> Unit,
-    viewModel: MyScrapnelViewModel
+    viewModel: MyScrapnelViewModel,
+    title: String,
+    scrapnelTextFieldToEdit: String
 
 ) {
-    var title by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(title) }
 //    var scrapnelTextField by remember { mutableStateOf("") }
-    var scrapnelTextField by remember { mutableStateOf(TextFieldValue("")) }
+    var scrapnelTextField by remember { mutableStateOf(TextFieldValue(scrapnelTextFieldToEdit)) }
 
     var isText by remember { mutableStateOf(true) }
     var isImage by remember { mutableStateOf(false) }
@@ -227,32 +254,43 @@ private fun Main(
             }
         }
 
-    var saveFailureMessage by remember { mutableStateOf<String?>(null) }
+    var isSaveFailed by remember { mutableStateOf(false) }
     val saveResult by viewModel.saveResult.collectAsState()
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var foundTimeStamp by remember { mutableStateOf<Long?>(null) }
+    Log.d("FoundTimeStamp:", "FoundTimeStamp: $foundTimeStamp")
 
+    var isEditing by remember { mutableStateOf(false) }
 
-    LaunchedEffect(saveResult) {
-        saveResult.onSuccess { saved ->
-            if (saved) {
-                saveFailureMessage = null
-                delay(2000)
-             
-            }
-        }.onFailure { error ->
-            saveFailureMessage = error.message ?: "Unknown error"
+    LaunchedEffect(isEditing) {
+        if (isEditing) {
+            viewModel.loadTheScrapnelToEdit(foundTimeStamp!!)
+
         }
     }
 
     LaunchedEffect(saveResult) {
         saveResult.onSuccess { saved ->
-            if (saved) {
+            if (saved.result == true) {
                 showSuccessDialog = true
+                delay(2000)
+                showSuccessDialog = false
             }
         }.onFailure { error ->
-            saveFailureMessage = error.message ?: "Unknown error"
+            val message = error.message
+            if (message?.startsWith("Conflict:") == true) {
+                foundTimeStamp = message.removePrefix("Conflict:").toLongOrNull()
+                isSaveFailed = true
+            } else {
+
+                isSaveFailed = true
+            }
         }
     }
+
+
+
+
 
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -312,7 +350,6 @@ private fun Main(
                 {
 
                 }
-
 
             }
         }
@@ -531,16 +568,24 @@ private fun Main(
             )
         }
     }
-    if (saveFailureMessage != null) {
+    if (isSaveFailed) {
         AlertDialog(
-            onDismissRequest = { saveFailureMessage = null },
+            onDismissRequest = { isSaveFailed = false },
             confirmButton = {
-                TextButton(onClick = { saveFailureMessage = null }) {
+                TextButton(onClick = { isSaveFailed = false }) {
                     Text("OK")
                 }
             },
-            title = { Text("Save Blocked") },
-            text = { Text(saveFailureMessage ?: "") },
+            dismissButton = {
+                TextButton(onClick = { isSaveFailed = false
+                    viewModel.loadTheScrapnelToEdit(foundTimeStamp!!)
+                    isEditing =true
+                }) {
+                    Text("Edit")
+                }
+            },
+            title = { Text("Sorry can't save this") },
+            text = { Text("Please change the time \n already saved a scrapnel in this time gap") },
             containerColor = MaterialTheme.colorScheme.background,
             textContentColor = MaterialTheme.colorScheme.onBackground
         )

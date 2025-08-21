@@ -4,7 +4,12 @@ import android.content.Context
 import android.net.Uri
 import java.io.File
 import java.io.InputStream
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
+import java.util.Locale
 
 fun copyImageToInternalStorage(context: Context, uri: Uri): String? {
     return try {
@@ -37,4 +42,45 @@ fun getTimestamp(year: String, month: String, day: String, hour: String, minute:
         set(Calendar.MILLISECOND, 0)
     }
     return calendar.timeInMillis
+}
+
+fun extractDateFromTimestamp(timestamp: Long): String {
+    val instant = Instant.ofEpochMilli(timestamp)
+    val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    return localDate.format(formatter)
+}
+
+
+fun convertDdMmYyyyToTimestamp(dateString: String): Long? {
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+    try {
+        val date = dateFormat.parse(dateString)
+        return date?.time
+    } catch (e: Exception) {
+        e.printStackTrace()
+        return null
+    }
+}
+
+
+fun convertTimestampToDateTimeComponents(timestamp: Long): List<String> {
+    val calendar = Calendar.getInstance(Locale.getDefault())
+    calendar.timeInMillis = timestamp
+
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+    val month = calendar.get(Calendar.MONTH) + 1
+    val year = calendar.get(Calendar.YEAR)
+    val hour = calendar.get(Calendar.HOUR_OF_DAY)
+    val minute = calendar.get(Calendar.MINUTE)
+
+    return listOf(
+        String.format("%02d", day),
+        String.format("%02d", month),
+        year.toString(),
+        String.format("%02d", hour),
+        String.format("%02d", minute)
+    )
+
 }
