@@ -20,16 +20,14 @@ class MyScrapnelViewModel(private val repository: SaveScrapnelRepository) : View
     fun saveScrapnel(scrapnel: ScrapnelEntity) {
         viewModelScope.launch {
             try {
-                val existsNearby = repository.isScrapnelWithinFiveMinutes(scrapnel.timeStamp)
-                if (!existsNearby) {
+                val isExistsInFiveMinutes = repository.isScrapnelWithinFiveMinutes(scrapnel.timeStamp)
+                if (!isExistsInFiveMinutes) {
                     repository.insertScrapnel(scrapnel)
                     _saveResult.value = Result.success(SaveScrapnelResultModel(true, scrapnel.timeStamp))
                 } else {
                     val existing = repository.existingSimilarTimeStamp
                     _saveResult.value = Result.failure(Exception("Conflict:$existing"))
                 }
-
-
 
             } catch (e: Exception) {
                 _saveResult.value = Result.failure(e)
@@ -42,6 +40,18 @@ class MyScrapnelViewModel(private val repository: SaveScrapnelRepository) : View
             _theScrapnelToEdit.value = repository.getTheScrapnelToEdit(timeStamp)
         }
     }
+
+    fun updateScrapnel(scrapnel: ScrapnelEntity) {
+        viewModelScope.launch {
+            try {
+                repository.updateScrapnel(scrapnel)
+                _saveResult.value = Result.success(SaveScrapnelResultModel(true, scrapnel.timeStamp))
+            } catch (e: Exception) {
+                _saveResult.value = Result.failure(e)
+            }
+        }
+    }
+
 }
 
 

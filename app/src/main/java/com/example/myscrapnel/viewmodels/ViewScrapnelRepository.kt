@@ -66,6 +66,21 @@ class ViewScrapnelRepository(private val dao: ScrapnelDao) {
         }
     }
 
+    suspend fun getFilteredChips(filterKey: String): List<String> {
+        return dao.searchChips(filterKey)
+    }
+
+    suspend fun getScrapnelTitleChips(): List<String> {
+        return dao.getScrapnelTitleChips()
+    }
+
+
+
+    suspend fun getScrapnelEntityByTimestamp(timestamp: Long): ScrapnelEntity? {
+        return dao.getScrapnelByTimestamp(timestamp)
+    }
+
+
 
     suspend fun deleteScrapnel(scrapnel: List<ScrapnelEntity>) {
         scrapnel.forEach { entity ->

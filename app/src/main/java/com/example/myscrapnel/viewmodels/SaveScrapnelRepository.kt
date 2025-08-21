@@ -29,5 +29,9 @@ class SaveScrapnelRepository(private val dao: ScrapnelDao) {
         val scrapnel = dao.getScrapnelByTimestamp(timeStamp)
         return scrapnel
     }
+    suspend fun updateScrapnel(scrapnel: ScrapnelEntity) {
+        dao.updateScrapnel(scrapnel)
+    }
+
 
 }

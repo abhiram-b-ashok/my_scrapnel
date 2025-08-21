@@ -104,6 +104,8 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavControlle
     val convertedTimeStamp = convertTimestampToDateTimeComponents(itemToEdit?.timeStamp ?: 0L)
 
 
+
+
     LaunchedEffect(itemToEdit)
     {
         if (itemToEdit != null)
@@ -134,7 +136,8 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavControlle
             onDateClick = { showDatePicker = true },
             viewModel = viewModel,
             title = title,
-            scrapnelTextFieldToEdit = scrapnelTextField
+            scrapnelTextFieldToEdit = scrapnelTextField,
+            itemToEdit = itemToEdit
 
         )
     }
@@ -215,7 +218,8 @@ private fun Main(
     onDateClick: () -> Unit,
     viewModel: MyScrapnelViewModel,
     title: String,
-    scrapnelTextFieldToEdit: String
+    scrapnelTextFieldToEdit: String,
+    itemToEdit: ScrapnelEntity? = null
 
 ) {
     var title by remember { mutableStateOf(title) }
@@ -230,8 +234,13 @@ private fun Main(
     val monthName = months[month.toInt()-1].name
     val context = LocalContext.current
     val timestamp = getTimestamp(year, month, day, hour, minute)
-    val scrapnelEntity =
-        ScrapnelEntity(timestamp, title, scrapnelTextField.text, System.currentTimeMillis())
+
+    val scrapnelEntity = ScrapnelEntity(
+        itemToEdit?.timeStamp ?: timestamp,
+        title,
+        scrapnelTextField.text,
+        itemToEdit?.createdAt ?: System.currentTimeMillis()
+    )
 
 
     val pickImages =
@@ -549,7 +558,11 @@ private fun Main(
                     showErrorDialog = true
                 } else {
                     isSaving = true
-                    viewModel.saveScrapnel(scrapnelEntity)
+                    if (itemToEdit != null) {
+                        viewModel.updateScrapnel(scrapnelEntity)
+                    } else {
+                        viewModel.saveScrapnel(scrapnelEntity)
+                    }
 
                 }
             },

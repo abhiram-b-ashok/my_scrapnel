@@ -40,6 +40,9 @@ interface ScrapnelDao {
     @Query("SELECT * FROM scrapnel WHERE title LIKE '%' || :query || '%' OR timeStamp LIKE '%' || :query || '%' ORDER BY timestamp DESC")
     suspend fun searchScrapnels(query: String): List<ScrapnelEntity>
 
+    @Query("SELECT title FROM scrapnel WHERE title LIKE '%' || :query || '%' OR timeStamp LIKE '%' || :query || '%' ORDER BY createdAt DESC LIMIT :count")
+    suspend fun searchChips(query: String,count:Int= 20): List<String>
+
     @Query("SELECT * FROM scrapnel WHERE timeStamp = :timeStamp")
     suspend fun getScrapnelByTimestamp(timeStamp: Long): ScrapnelEntity?
 

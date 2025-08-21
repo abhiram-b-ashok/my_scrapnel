@@ -14,8 +14,16 @@ class ViewScrapnelViewModel(private val repository: ViewScrapnelRepository) : Vi
     private val _scrapnelItems = MutableStateFlow<List<ScrapnelUiModel>>(emptyList())
     val scrapnelItems: StateFlow<List<ScrapnelUiModel>> = _scrapnelItems
 
+    private val _chipTitles = MutableStateFlow<List<String>>(emptyList())
+    val chipTitles: StateFlow<List<String>> = _chipTitles
+    private val _selectedItemsToDelete = mutableListOf<ScrapnelUiModel>()
 
 
+    fun loadChipTitles() {
+        viewModelScope.launch {
+            _chipTitles.value = repository.getScrapnelTitleChips()
+        }
+    }
     fun loadScrapnels() {
         viewModelScope.launch {
             _scrapnelItems.value = repository.getAllScrapnelUiModels()
@@ -25,15 +33,38 @@ class ViewScrapnelViewModel(private val repository: ViewScrapnelRepository) : Vi
     fun loadFilteredScrapnels(filterKey: String) {
         viewModelScope.launch {
             _scrapnelItems.value = repository.getFilteredScrapnels(filterKey)
+            _chipTitles.value = repository.getFilteredChips(filterKey)
         }
 
     }
 
-    fun deleteTheseItemsFromDb(scrapnels: List<ScrapnelEntity>) {
+    
+     fun selectCheckedItems(item: ScrapnelUiModel, isChecked: Boolean) {
+        if (isChecked) {
+            _selectedItemsToDelete.add(item)
+        } else {
+            _selectedItemsToDelete.removeIf { it.timeStamp == item.timeStamp }
+        }
+    }
+
+    fun clearSelectedItems() {
+        _selectedItemsToDelete.clear()
+    }
+
+    fun deleteSelectedItems() {
         viewModelScope.launch {
-            repository.deleteScrapnel(scrapnels)
+            val itemsToDelete = _selectedItemsToDelete.toList()
+
+            val entitiesToDelete = itemsToDelete.mapNotNull { item ->
+                repository.getScrapnelEntityByTimestamp(item.timeStamp)
+            }
+
+            repository.deleteScrapnel(entitiesToDelete)
+            clearSelectedItems()
+            loadScrapnels()
+            loadChipTitles()
         }
     }
-
+    
 
 }
