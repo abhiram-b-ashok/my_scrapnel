@@ -84,3 +84,25 @@ fun convertTimestampToDateTimeComponents(timestamp: Long): List<String> {
     )
 
 }
+
+fun convertTimestampToDateTimeComponent(timestamp: Long?): List<String> {
+    val calendar = Calendar.getInstance(Locale.getDefault())
+    if (timestamp != null) {
+        calendar.timeInMillis = timestamp
+    }
+
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+    val month = calendar.get(Calendar.MONTH) + 1
+    val year = calendar.get(Calendar.YEAR)
+    val hour = calendar.get(Calendar.HOUR_OF_DAY)
+    val minute = calendar.get(Calendar.MINUTE)
+
+    return listOf(
+        String.format("%02d", day),
+        String.format("%02d", month),
+        year.toString(),
+        String.format("%02d", hour),
+        String.format("%02d", minute)
+    )
+
+}

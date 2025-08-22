@@ -1,8 +1,10 @@
 package com.example.myscrapnel.views.home_page
 
 
+import android.R.attr.text
 import android.annotation.SuppressLint
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +25,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
@@ -77,6 +81,7 @@ import com.example.myscrapnel.utils.convertDdMmYyyyToTimestamp
 import com.example.myscrapnel.viewmodels.ViewScrapnelRepository
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModel
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModelFactory
+import kotlinx.coroutines.delay
 
 
 @Composable
@@ -96,10 +101,9 @@ fun Homepage(modifier: Modifier = Modifier, navController: NavController) {
     ).build()
     val scrapnelRepository = ViewScrapnelRepository(database.dao())
     val scrapnelViewModelFactory = ViewScrapnelViewModelFactory(scrapnelRepository)
-    val scrapnelViewModel : ViewScrapnelViewModel = viewModel(factory = scrapnelViewModelFactory)
+    val scrapnelViewModel: ViewScrapnelViewModel = viewModel(factory = scrapnelViewModelFactory)
     LaunchedEffect(isDeleting) {
-        if (!isDeleting)
-        {
+        if (!isDeleting) {
             scrapnelViewModel.clearSelectedItems()
         }
     }
@@ -117,17 +121,19 @@ fun Homepage(modifier: Modifier = Modifier, navController: NavController) {
             headerTitle,
             modifier = modifier,
             showDialog = { isShowDialog = true },
-            dismissDialog = { isShowDialog = false
-                isFiltering = false   },
-            startDelete = { isDeleting = !isDeleting }
-            ,
+            dismissDialog = {
+                isShowDialog = false
+                isFiltering = false
+            },
+            startDelete = { isDeleting = !isDeleting },
             isFiltering = isFiltering,
-            onClearFilter = { filterKey = ""
-                            headerTitle = "My Scrapnel"
-                            isFiltering = false},
+            onClearFilter = {
+                filterKey = ""
+                headerTitle = "My Scrapnel"
+                isFiltering = false
+            },
             scrapnelViewModel,
-            stopDeleteMode={ stopDeleteMode() }
-            ,
+            stopDeleteMode = { stopDeleteMode() },
             isDeleting
         )
 
@@ -145,7 +151,6 @@ fun Homepage(modifier: Modifier = Modifier, navController: NavController) {
         )
     }
 }
-
 
 
 @Composable
@@ -183,8 +188,7 @@ private fun Header(
         )
         Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
 
-            if (isDeleting)
-            {
+            if (isDeleting) {
                 Text(
                     text = "Delete",
                     modifier = Modifier
@@ -209,7 +213,7 @@ private fun Header(
                 )
             }
 
-            if (!isFiltering){
+            if (!isFiltering) {
                 IconButton(onClick = { showDialog() }) {
                     Icon(
                         painter = painterResource(R.drawable.ic_filter),
@@ -218,9 +222,7 @@ private fun Header(
                         modifier = Modifier.size(18.dp)
                     )
                 }
-            }
-            else
-            {
+            } else {
 
                 Text(
                     text = "Clear",
@@ -243,9 +245,14 @@ private fun Header(
 }
 
 
-
 @Composable
-private fun Main(isDeleting: Boolean, navController: NavController, scrapnelViewModel: ViewScrapnelViewModel, isFiltering: Boolean, filterKey: String ) {
+private fun Main(
+    isDeleting: Boolean,
+    navController: NavController,
+    scrapnelViewModel: ViewScrapnelViewModel,
+    isFiltering: Boolean,
+    filterKey: String
+) {
 
     val chipTitles by scrapnelViewModel.chipTitles.collectAsState()
 
@@ -255,11 +262,9 @@ private fun Main(isDeleting: Boolean, navController: NavController, scrapnelView
 
     Column {
         ChipsAndFilter(chipTitles, isFiltering)
-        ScrapnelListScreen(filterKey, isDeleting, navController, scrapnelViewModel  )
+        ScrapnelListScreen(filterKey, isDeleting, navController, scrapnelViewModel)
     }
 }
-
-
 
 
 @Composable
@@ -271,6 +276,13 @@ fun ScrapnelListScreen(
 ) {
     val scrapnelItems by scrapnelViewModel.scrapnelItems.collectAsState()
     var isLoading by remember { mutableStateOf(true) }
+    var isDataLoaded by remember { mutableStateOf(false) }
+
+
+    LaunchedEffect(Unit) {
+        delay(500)
+        isDataLoaded = true
+    }
 
     LaunchedEffect(filterKey) {
         isLoading = true
@@ -282,15 +294,24 @@ fun ScrapnelListScreen(
         isLoading = false
     }
 
+
+
+
     Box(modifier = Modifier.fillMaxSize()) {
+        if (isDataLoaded) {
+                Text(text = "")
+        } else {
+            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+        }
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (scrapnelItems.isEmpty()) {
             EmptyScreen(navController, Modifier.align(Alignment.Center))
         } else {
-            ScrapnelGrid(scrapnelItems, isDeleting, scrapnelViewModel)
+            ScrapnelGrid(scrapnelItems, isDeleting, scrapnelViewModel, navController)
             FloatingActionButton(
                 onClick = { navController.navigate("create") },
+
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
@@ -298,9 +319,14 @@ fun ScrapnelListScreen(
                     .align(Alignment.BottomEnd)
                     .padding(16.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Create Scrapnel", modifier = Modifier.size(30.dp))
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Create Scrapnel",
+                    modifier = Modifier.size(30.dp)
+                )
             }
         }
+
     }
 }
 
@@ -315,7 +341,11 @@ fun EmptyScreen(navController: NavController, modifier: Modifier) {
             contentColor = MaterialTheme.colorScheme.onPrimary,
             shape = CircleShape,
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Create Scrapnel", modifier = Modifier.size(30.dp))
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "Create Scrapnel",
+                modifier = Modifier.size(30.dp)
+            )
         }
         Text(
             text = "Start creating \n your day...",
@@ -328,9 +358,15 @@ fun EmptyScreen(navController: NavController, modifier: Modifier) {
 
 @SuppressLint("UnrememberedMutableState")
 @Composable
-fun ScrapnelGrid(items: List<ScrapnelUiModel>, isDeleting: Boolean, scrapnelViewModel: ViewScrapnelViewModel) {
+fun ScrapnelGrid(
+    items: List<ScrapnelUiModel>,
+    isDeleting: Boolean,
+    scrapnelViewModel: ViewScrapnelViewModel,
+    navController: NavController
+) {
 
     val selectedItems = remember { mutableStateMapOf<Long, Boolean>() }
+
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -338,35 +374,46 @@ fun ScrapnelGrid(items: List<ScrapnelUiModel>, isDeleting: Boolean, scrapnelView
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(16.dp),
     ) {
-        items(items.size, key = { items[it].timeStamp }) {index->
+        items(items.size, key = { items[it].timeStamp }) { index ->
             val item = items[index]
             val isChecked = selectedItems[item.timeStamp] == true
-            ScrapnelCard(item, isDeleting, isChecked, onCheckedChange  = { checked ->
-                selectedItems[item.timeStamp] = checked
-                scrapnelViewModel.selectCheckedItems(item, checked)
-            }
+            ScrapnelCard(
+                item, isDeleting, isChecked, onCheckedChange = { checked ->
+                    selectedItems[item.timeStamp] = checked
+                    scrapnelViewModel.selectCheckedItems(item, checked)
+                },
+                navController
             )
         }
     }
 }
 
 
-
 @Composable
-fun ScrapnelCard(item: ScrapnelUiModel, isDeleting: Boolean, isChecked: Boolean,
-                 onCheckedChange: (Boolean) -> Unit) {
+fun ScrapnelCard(
+    item: ScrapnelUiModel, isDeleting: Boolean, isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit, navController: NavController
+) {
+    var firstTextViewText by remember { mutableStateOf(item.fullText) }
+    var secondTextViewText by remember { mutableStateOf("") }
+    var isOverFlowHandled by remember { mutableStateOf(false) }
+    var fullText by remember { mutableStateOf(item.fullText) }
 
 
-    Card(modifier = Modifier.height(215.dp),
+    Card(
+        modifier = Modifier.height(215.dp),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp
-        )
-       ) {
+        ),
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.tertiary)
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .clickable(onClick = {
+                    navController.navigate("scrapnel/${item.timeStamp}")
+                    Log.d("Navigation", "Navigating with timestamp: ${item.timeStamp}")
 
                 })
 
@@ -379,60 +426,63 @@ fun ScrapnelCard(item: ScrapnelUiModel, isDeleting: Boolean, isChecked: Boolean,
                     .padding(12.dp)
             ) {
 
-                    Column(
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val hasText = item.fullText.isNotBlank()
+
+                    Row(
                         modifier = Modifier
-                            .fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding( horizontal = 5.dp)
+                            .height(79.dp),
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(top = 16.dp, start = 16.dp, end = 16.dp)
-                                .height(79.dp),
-                        ) {
+                        item.firstImageUri?.let { imageUri ->
                             Card(
                                 modifier = Modifier
-                                    .fillMaxWidth()
+                                    .width(79.dp)
                                     .height(79.dp)
-                                    .padding(end = 6.dp)
+                                    .padding(top = 5.dp, end = 5.dp)
                             ) {
-                                item.firstImageUri?.let {
 
-                                }
-                                item.firstImageUri?.let { imageUri ->
-                                    Image(
-                                        painter = rememberAsyncImagePainter(model = imageUri),
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(180.dp)
-                                            .clip(RoundedCornerShape(8.dp)),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                Image(
+                                    painter = rememberAsyncImagePainter(model = imageUri),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    contentScale = ContentScale.FillBounds
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = firstTextViewText,
+                            maxLines = 4,
+                            overflow = TextOverflow.Clip,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium,
+                            onTextLayout = { textLayoutResult ->
+                                if (!isOverFlowHandled && textLayoutResult.didOverflowHeight) {
+                                    val lastVisibleCharIndex = textLayoutResult.getLineEnd(
+                                        lineIndex = textLayoutResult.lineCount - 1,
+                                        visibleEnd = true
+                                    ).coerceAtMost(item.fullText.length)
+
+                                    firstTextViewText =
+                                        item.fullText.substring(0, lastVisibleCharIndex)
+                                    secondTextViewText =
+                                        item.fullText.substring(lastVisibleCharIndex)
+                                    isOverFlowHandled = true
                                 }
                             }
 
-//                        Text(
-//                            text = firstTextViewText,
-//                            maxLines = 4,
-//                            overflow = TextOverflow.Clip,
-//                            modifier = Modifier
-//                                .weight(1f)
-//                                .fillMaxHeight(),
-//                            color = MaterialTheme.colorScheme.onSurface,
-//                            style = MaterialTheme.typography.bodyMedium,
-//                            onTextLayout = { textLayoutResult ->
-//                                if (!isOverFlowHandled && textLayoutResult.didOverflowHeight) {
-//                                    val lastVisibleCharIndex = textLayoutResult.getLineEnd(
-//                                        lineIndex = textLayoutResult.lineCount - 1,
-//                                        visibleEnd = true
-//                                    )
-//                                    firstTextViewText = fullText.substring(0, lastVisibleCharIndex)
-//                                    secondTextViewText = fullText.substring(lastVisibleCharIndex)
-//                                    isOverFlowHandled = true
-//                                }
-//                            }
-//                        )
-                        }
+                        )
+                    }
 
 //                    Text(
 //                        text = secondTextViewText,
@@ -445,40 +495,43 @@ fun ScrapnelCard(item: ScrapnelUiModel, isDeleting: Boolean, isChecked: Boolean,
 //                        maxLines = 4,
 //                        overflow = TextOverflow.Ellipsis
 //                    )
-                        val hasText = item.fullText.isNotBlank()
 
-                        Text(
-                            text = if (hasText) item.fullText else " ",
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            color = if (hasText) MaterialTheme.colorScheme.onSurface else Color.Transparent,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier
-                                .padding(5.dp)
-                                .heightIn(min = 48.dp)
-                        )
+//                        val hasText = item.fullText.isNotBlank()
+
+                    Text(
+                        text = secondTextViewText,
+                        maxLines = 5,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .padding(horizontal = 5.dp)
+                            .heightIn(min = 48.dp)
+                    )
 
 
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .fillMaxWidth()
-                                .background(color = MaterialTheme.colorScheme.primary)
+                }
 
-                        ) {
-                            Text(
-                                text = item.title,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(4.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                    }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 6.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .fillMaxWidth()
+                        .background(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
 
+                ) {
+                    Text(
+                        text = item.title,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
 
 
             }
@@ -697,7 +750,7 @@ fun FilterDialog(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = titleInput.isEmpty(),
 
-                    )
+                        )
                 }
             },
             confirmButton = {
@@ -727,7 +780,8 @@ fun FilterDialog(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { onDismiss()
+                OutlinedButton(onClick = {
+                    onDismiss()
                     titleInput = ""
                     dateInput = ""
 

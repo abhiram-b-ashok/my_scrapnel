@@ -21,12 +21,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.myscrapnel.ui.theme.MyScrapnelTheme
 import com.example.myscrapnel.views.create_scrapnel_page.CreateScrapnelPage
 import com.example.myscrapnel.views.home_page.Homepage
+import com.example.myscrapnel.views.scrapnel_page.ScrapnelPage
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 class MainActivity : ComponentActivity() {
@@ -94,9 +97,36 @@ fun Navigation(modifier: Modifier) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "home"){
-        composable("home"){  Homepage(navController = navController)}
-        composable("create"){   CreateScrapnelPage(navController = navController)}
-    }
 
+        composable("home"){  Homepage(navController = navController)}
+
+//        composable("create/{timeStamp}",
+//            arguments = listOf(navArgument("timestamp") { type = NavType.LongType })
+//        ){navBackStackEntry ->
+//            val timestamp = navBackStackEntry.arguments?.getLong("timestamp")
+//            CreateScrapnelPage(navController = navController, itemToEditFromScrapnel = timestamp)}
+
+        composable(
+            route = "create?timestamp={timestamp}",
+            arguments = listOf(
+                navArgument("timestamp") {
+                    type = NavType.LongType
+                    defaultValue = -1L // <- default when no timestamp is passed
+                }
+            )
+        ) { navBackStackEntry ->
+            val timestamp = navBackStackEntry.arguments?.getLong("timestamp")
+            val itemToEdit = if (timestamp != -1L) timestamp else null
+            CreateScrapnelPage(navController = navController, itemToEditFromScrapnel = itemToEdit)
+        }
+
+
+        composable("scrapnel/{timestamp}",
+            arguments = listOf(navArgument("timestamp") { type = NavType.LongType })
+        ) { navBackStackEntry ->
+            val timestamp = navBackStackEntry.arguments?.getLong("timestamp")
+            ScrapnelPage(navController = navController, timestamp = timestamp)
+        }
+    }
 }
 

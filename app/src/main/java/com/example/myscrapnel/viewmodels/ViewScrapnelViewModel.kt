@@ -18,6 +18,9 @@ class ViewScrapnelViewModel(private val repository: ViewScrapnelRepository) : Vi
     val chipTitles: StateFlow<List<String>> = _chipTitles
     private val _selectedItemsToDelete = mutableListOf<ScrapnelUiModel>()
 
+    private val _scrapnel = MutableStateFlow<ScrapnelEntity?>(null)
+    val scrapnel: StateFlow<ScrapnelEntity?> = _scrapnel
+
 
     fun loadChipTitles() {
         viewModelScope.launch {
@@ -27,6 +30,15 @@ class ViewScrapnelViewModel(private val repository: ViewScrapnelRepository) : Vi
     fun loadScrapnels() {
         viewModelScope.launch {
             _scrapnelItems.value = repository.getAllScrapnelUiModels()
+        }
+    }
+
+    fun loadScrapnel(timestamp: Long?) {
+        viewModelScope.launch {
+            val scrapnel = repository.getScrapnelEntityByTimestamp(timestamp)
+            if (scrapnel != null) {
+                _scrapnel.value = scrapnel
+            }
         }
     }
 

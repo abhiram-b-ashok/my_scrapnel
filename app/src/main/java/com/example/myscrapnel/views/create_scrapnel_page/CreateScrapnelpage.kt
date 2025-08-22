@@ -4,7 +4,6 @@ package com.example.myscrapnel.views.create_scrapnel_page
 import android.os.Build
 import android.util.Log
 import android.widget.NumberPicker
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -67,6 +66,7 @@ import androidx.room.Room
 import com.example.myscrapnel.R
 import com.example.myscrapnel.room_db.ScrapnelDatabase
 import com.example.myscrapnel.room_db.ScrapnelEntity
+import com.example.myscrapnel.utils.convertTimestampToDateTimeComponent
 import com.example.myscrapnel.utils.convertTimestampToDateTimeComponents
 import com.example.myscrapnel.utils.copyImageToInternalStorage
 import com.example.myscrapnel.utils.extractDateFromTimestamp
@@ -80,7 +80,7 @@ import java.util.Calendar
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
-fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavController) {
+fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavController,itemToEditFromScrapnel: Long?) {
     val calendar = Calendar.getInstance()
     var year by remember { mutableStateOf("${calendar.get(Calendar.YEAR)}") }
     var month by remember { mutableStateOf("${calendar.get(Calendar.MONTH) + 1}") }
@@ -104,6 +104,12 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavControlle
     val convertedTimeStamp = convertTimestampToDateTimeComponents(itemToEdit?.timeStamp ?: 0L)
 
 
+    LaunchedEffect(itemToEditFromScrapnel)
+    {
+        if (itemToEditFromScrapnel != null) {
+           viewModel.loadTheScrapnelToEdit(itemToEditFromScrapnel)
+        }
+    }
 
 
     LaunchedEffect(itemToEdit)
@@ -135,10 +141,10 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavControlle
             onTimeClick = { showTimePicker = true },
             onDateClick = { showDatePicker = true },
             viewModel = viewModel,
-            title = title,
+            titlee = title,
             scrapnelTextFieldToEdit = scrapnelTextField,
-            itemToEdit = itemToEdit
-
+            itemToEdit = itemToEdit,
+            navController
         )
     }
 
@@ -195,14 +201,6 @@ private fun Header(
             color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.headlineLarge
         )
-        IconButton(onClick = { }) {
-            Icon(
-                painter = painterResource(R.drawable.ic_cancel),
-                contentDescription = "Cancel",
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.size(24.dp)
-            )
-        }
     }
 }
 
@@ -217,14 +215,16 @@ private fun Main(
     onTimeClick: () -> Unit,
     onDateClick: () -> Unit,
     viewModel: MyScrapnelViewModel,
-    title: String,
+    titlee: String,
     scrapnelTextFieldToEdit: String,
-    itemToEdit: ScrapnelEntity? = null
+    itemToEdit: ScrapnelEntity? = null,
+    navController: NavController
 
 ) {
-    var title by remember { mutableStateOf(title) }
-//    var scrapnelTextField by remember { mutableStateOf("") }
-    var scrapnelTextField by remember { mutableStateOf(TextFieldValue(scrapnelTextFieldToEdit)) }
+//    var title by remember { mutableStateOf(titlee) }
+//    var scrapnelTextField by remember { mutableStateOf(TextFieldValue(scrapnelTextFieldToEdit)) }
+    var title by remember(titlee) { mutableStateOf(titlee) }
+    var scrapnelTextField by remember(scrapnelTextFieldToEdit) { mutableStateOf(TextFieldValue(scrapnelTextFieldToEdit)) }
 
     var isText by remember { mutableStateOf(true) }
     var isImage by remember { mutableStateOf(false) }
@@ -284,6 +284,7 @@ private fun Main(
                 showSuccessDialog = true
                 delay(2000)
                 showSuccessDialog = false
+                navController.navigate("home")
             }
         }.onFailure { error ->
             val message = error.message
@@ -296,9 +297,6 @@ private fun Main(
             }
         }
     }
-
-
-
 
 
 
@@ -405,13 +403,20 @@ private fun Main(
             }
         }
 
+        val maxTitleLength = 27
+
         OutlinedTextField(
             value = title,
-            onValueChange = { title = it },
+            onValueChange = {
+                if (it.length <= maxTitleLength) {
+                    title = it
+                }
+            },
             label = { Text("Title") },
             modifier = Modifier.padding(top = 16.dp),
             maxLines = 1,
         )
+
 
         Box(modifier = Modifier.padding(top = 16.dp)
         )
@@ -598,7 +603,7 @@ private fun Main(
                 }
             },
             title = { Text("Sorry can't save this") },
-            text = { Text("Please change the time \n already saved a scrapnel in this time gap") },
+            text = { Text("Please change the time \nalready saved a scrapnel in this time gap") },
             containerColor = MaterialTheme.colorScheme.background,
             textContentColor = MaterialTheme.colorScheme.onBackground
         )

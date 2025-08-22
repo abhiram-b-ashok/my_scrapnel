@@ -143,7 +143,7 @@ fun PreviewScrapnel(
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
-fun ImageStack(images: List<Uri>) {
+private fun ImageStack(images: List<Uri>) {
 
 //    val rearrangedImages = remember {images.toMutableList()}
     val rearrangedImages = remember {

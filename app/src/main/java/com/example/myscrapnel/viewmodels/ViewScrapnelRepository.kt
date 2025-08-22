@@ -76,8 +76,8 @@ class ViewScrapnelRepository(private val dao: ScrapnelDao) {
 
 
 
-    suspend fun getScrapnelEntityByTimestamp(timestamp: Long): ScrapnelEntity? {
-        return dao.getScrapnelByTimestamp(timestamp)
+    suspend fun getScrapnelEntityByTimestamp(timestamp: Long?): ScrapnelEntity? {
+        return dao.getScrapnelByTimestamp(timestamp!!)
     }
 
 
@@ -86,6 +86,10 @@ class ViewScrapnelRepository(private val dao: ScrapnelDao) {
         scrapnel.forEach { entity ->
             dao.deleteScrapnel(entity)
         }
+    }
+
+    suspend fun getScrapnelByTimestamp(timestamp: Long): ScrapnelEntity? {
+        return dao.getScrapnelByTimestamp(timestamp)
     }
 
 
