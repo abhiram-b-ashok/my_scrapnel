@@ -56,7 +56,6 @@ import com.example.myscrapnel.viewmodels.ViewScrapnelViewModel
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModelFactory
 
 
-@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
 fun ScrapnelPage(modifier: Modifier =Modifier, navController: NavController, timestamp: Long?)
 {
@@ -128,7 +127,6 @@ private fun Header(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
 private fun Main(scrapnel: ScrapnelEntity?) {
     val timestamp = scrapnel?.timeStamp
@@ -227,7 +225,6 @@ private fun Main(scrapnel: ScrapnelEntity?) {
 
     }
 
-@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
 private fun ImageStack(images: List<Uri>) {
 
@@ -236,7 +233,7 @@ private fun ImageStack(images: List<Uri>) {
         mutableStateListOf<Uri>().apply { addAll(images) }
     }
 
-    val imageHeight = 120.dp
+    val imageHeight = 150.dp
     val offsetPerImage = 20.dp
     val maxHeight = imageHeight + (rearrangedImages.size - 1) * offsetPerImage
     Box(
@@ -253,18 +250,28 @@ private fun ImageStack(images: List<Uri>) {
 
             val isTop = index == rearrangedImages.lastIndex
 
-            ImageCard(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                ImageCard(
+                    uri = uri,
+                    contentDescription = "$uri",
+                    modifier = Modifier
+                        .offset(y = -offsetAmount, x = -offsetAmount)
+                        .graphicsLayer { rotationZ = -rotationAngle }
+                        .then(if (isTop) Modifier.clickable {
+                            val top = rearrangedImages.removeLast()
+                            rearrangedImages.add(0, top)
+                        }
+                        else Modifier)
+                )
+            } else { ImageCard(
                 uri = uri,
                 contentDescription = "$uri",
                 modifier = Modifier
                     .offset(y = -offsetAmount, x = -offsetAmount)
                     .graphicsLayer { rotationZ = -rotationAngle }
-                    .then(if (isTop) Modifier.clickable {
-                        val top = rearrangedImages.removeLast()
-                        rearrangedImages.add(0, top)
-                    }
-                    else Modifier)
-            )
+            )}
+
+
         }
     }
 }
@@ -278,7 +285,7 @@ private fun ImageCard(
     Card(
         modifier = modifier
             .fillMaxWidth(0.35f)
-            .height(100.dp),
+            .height(130.dp),
         shape = RoundedCornerShape(8.dp)
     ) {
         Box {

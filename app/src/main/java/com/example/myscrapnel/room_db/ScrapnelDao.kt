@@ -46,6 +46,9 @@ interface ScrapnelDao {
     @Query("SELECT * FROM scrapnel WHERE timeStamp = :timeStamp")
     suspend fun getScrapnelByTimestamp(timeStamp: Long): ScrapnelEntity?
 
+    @Query("SELECT * FROM scrapnel WHERE title = :title")
+    suspend fun getScrapnelsByTitle(title: String): List<ScrapnelEntity>
+
 
 }
 

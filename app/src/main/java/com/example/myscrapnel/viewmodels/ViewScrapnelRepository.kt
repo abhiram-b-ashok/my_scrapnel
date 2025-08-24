@@ -29,7 +29,7 @@ class ViewScrapnelRepository(private val dao: ScrapnelDao) {
             ScrapnelUiModel(
                 title = entity.title,
                 fullText = textLines.joinToString("\n").trim(),
-                firstImageUri = imageUris.firstOrNull(),
+                imageUris = imageUris,
                 timeStamp = entity.timeStamp,
                 createdAt = entity.createdAt
             )
@@ -57,7 +57,7 @@ class ViewScrapnelRepository(private val dao: ScrapnelDao) {
             ScrapnelUiModel(
                 title = entity.title,
                 fullText = textLines.joinToString("\n").trim(),
-                firstImageUri = imageUris.firstOrNull(),
+                imageUris = imageUris,
                 timeStamp = entity.timeStamp,
                 createdAt = entity.createdAt
             )
@@ -90,6 +90,35 @@ class ViewScrapnelRepository(private val dao: ScrapnelDao) {
 
     suspend fun getScrapnelByTimestamp(timestamp: Long): ScrapnelEntity? {
         return dao.getScrapnelByTimestamp(timestamp)
+    }
+
+    suspend fun getScrapnelsByTitle(title: String): List<ScrapnelUiModel> {
+
+        val scrapnels = dao.getScrapnelsByTitle(title)
+        return scrapnels.map {entity ->
+            val lines = entity.content.lines()
+
+            val imageUris = mutableListOf<String>()
+            val textLines = mutableListOf<String>()
+
+            lines.forEach { line ->
+                if (line.isBlank()) return@forEach
+
+                if (line.startsWith("🖼️")) {
+                    imageUris.add(line.removePrefix("🖼️ ").trim())
+                } else {
+                    textLines.add(line)
+                }
+            }
+
+            ScrapnelUiModel(
+                title = entity.title,
+                fullText = textLines.joinToString("\n").trim(),
+                imageUris = imageUris,
+                timeStamp = entity.timeStamp,
+                createdAt = entity.createdAt
+            )
+        }
     }
 
 

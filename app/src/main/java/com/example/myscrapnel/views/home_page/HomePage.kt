@@ -1,12 +1,16 @@
 package com.example.myscrapnel.views.home_page
 
 
+import android.R.attr.maxLines
 import android.R.attr.text
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.util.Log
+import android.util.Log.e
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -62,13 +67,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.room.Room
@@ -82,6 +92,7 @@ import com.example.myscrapnel.viewmodels.ViewScrapnelRepository
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModel
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModelFactory
 import kotlinx.coroutines.delay
+import kotlin.collections.forEachIndexed
 
 
 @Composable
@@ -261,7 +272,7 @@ private fun Main(
     }
 
     Column {
-        ChipsAndFilter(chipTitles, isFiltering)
+        ChipsAndFilter(chipTitles, isFiltering, scrapnelViewModel)
         ScrapnelListScreen(filterKey, isDeleting, navController, scrapnelViewModel)
     }
 }
@@ -298,12 +309,9 @@ fun ScrapnelListScreen(
 
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (isDataLoaded) {
-                Text(text = "")
-        } else {
-            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-        }
-        if (isLoading) {
+        if (!isDataLoaded) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        }else if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (scrapnelItems.isEmpty()) {
             EmptyScreen(navController, Modifier.align(Alignment.Center))
@@ -397,16 +405,21 @@ fun ScrapnelCard(
     var firstTextViewText by remember { mutableStateOf(item.fullText) }
     var secondTextViewText by remember { mutableStateOf("") }
     var isOverFlowHandled by remember { mutableStateOf(false) }
-    var fullText by remember { mutableStateOf(item.fullText) }
+    var showDeleteOverlay by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isChecked, isDeleting) {
+        showDeleteOverlay = isChecked && isDeleting
+    }
+
 
 
     Card(
         modifier = Modifier.height(215.dp),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
+            defaultElevation = 5.dp
         ),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.tertiary)
+        border = BorderStroke(5.dp, MaterialTheme.colorScheme.tertiary)
     ) {
         Box(
             modifier = Modifier
@@ -428,26 +441,85 @@ fun ScrapnelCard(
 
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth().padding(top = 5.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val hasText = item.fullText.isNotBlank()
 
-                    Row(
-                        modifier = Modifier
-                            .padding( horizontal = 5.dp)
-                            .height(79.dp),
-                    ) {
-                        item.firstImageUri?.let { imageUri ->
+
+                    val hasImage = !item.imageUris.isNullOrEmpty()
+                    val hasText = item.fullText?.isNotBlank() == true
+                    val hasMultipleImages = item.imageUris?.size!! > 1
+                    val uriList = item.imageUris.mapNotNull { it.toUri() }
+
+
+
+                    if (hasImage && hasMultipleImages && !hasText){
+                                MiniImageStack(uriList.take(3))
+                    }
+
+                    else if (hasImage && hasText) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 5.dp)
+                                .height(79.dp),
+                            horizontalArrangement = Arrangement.Absolute.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Card(
                                 modifier = Modifier
                                     .width(79.dp)
                                     .height(79.dp)
                                     .padding(top = 5.dp, end = 5.dp)
                             ) {
-
                                 Image(
-                                    painter = rememberAsyncImagePainter(model = imageUri),
+                                    painter = rememberAsyncImagePainter(model = item.imageUris[0]),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    contentScale = ContentScale.FillBounds
+                                )
+                            }
+
+                            Text(
+                                text = firstTextViewText,
+                                maxLines = 4,
+                                overflow = TextOverflow.Clip,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.bodyMedium,
+                                onTextLayout = { textLayoutResult ->
+                                    if (!isOverFlowHandled && textLayoutResult.didOverflowHeight) {
+                                        val lastVisibleCharIndex = textLayoutResult.getLineEnd(
+                                            lineIndex = textLayoutResult.lineCount - 1,
+                                            visibleEnd = true
+                                        ).coerceAtMost(item.fullText.length)
+
+                                        firstTextViewText =
+                                            item.fullText.substring(0, lastVisibleCharIndex)
+                                        secondTextViewText =
+                                            item.fullText.substring(lastVisibleCharIndex)
+                                        isOverFlowHandled = true
+                                    }
+                                }
+                            )
+                        }
+                    } else if (hasImage) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(129.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Card(
+                                modifier = Modifier
+                                    .width(79.dp)
+                                    .height(79.dp)
+                            ) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(model = item.imageUris[0]),
                                     contentDescription = null,
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -456,58 +528,54 @@ fun ScrapnelCard(
                                 )
                             }
                         }
-
-                        Text(
-                            text = firstTextViewText,
-                            maxLines = 4,
-                            overflow = TextOverflow.Clip,
+                    } else if (hasText) {
+                        val height = if (secondTextViewText.isNotBlank()) 79.dp else 129.dp
+                        Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                            onTextLayout = { textLayoutResult ->
-                                if (!isOverFlowHandled && textLayoutResult.didOverflowHeight) {
-                                    val lastVisibleCharIndex = textLayoutResult.getLineEnd(
-                                        lineIndex = textLayoutResult.lineCount - 1,
-                                        visibleEnd = true
-                                    ).coerceAtMost(item.fullText.length)
+                                .fillMaxWidth()
+                                .height(height),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = firstTextViewText,
+                                maxLines = 4,
+                                overflow = TextOverflow.Clip,
+                                modifier = Modifier
+                                    .padding(horizontal = 12.dp),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.bodyMedium,
+                                onTextLayout = { textLayoutResult ->
+                                    if (!isOverFlowHandled && textLayoutResult.didOverflowHeight) {
+                                        val lastVisibleCharIndex = textLayoutResult.getLineEnd(
+                                            lineIndex = textLayoutResult.lineCount - 1,
+                                            visibleEnd = true
+                                        ).coerceAtMost(item.fullText.length)
 
-                                    firstTextViewText =
-                                        item.fullText.substring(0, lastVisibleCharIndex)
-                                    secondTextViewText =
-                                        item.fullText.substring(lastVisibleCharIndex)
-                                    isOverFlowHandled = true
+                                        firstTextViewText =
+                                            item.fullText.substring(0, lastVisibleCharIndex)
+                                        secondTextViewText =
+                                            item.fullText.substring(lastVisibleCharIndex)
+                                        isOverFlowHandled = true
+                                    }
                                 }
-                            }
-
-                        )
+                            )
+                        }
                     }
 
-//                    Text(
-//                        text = secondTextViewText,
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(top = 5.dp)
-//                            .heightIn(min = 48.dp),
-//                        color = MaterialTheme.colorScheme.onSurface,
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        maxLines = 4,
-//                        overflow = TextOverflow.Ellipsis
-//                    )
 
-//                        val hasText = item.fullText.isNotBlank()
+            if (secondTextViewText.isNotBlank()){
+                Text(
+                    text = secondTextViewText,
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .padding(horizontal = 5.dp)
+                        .heightIn(min = 53.dp)
+                )
+            }
 
-                    Text(
-                        text = secondTextViewText,
-                        maxLines = 5,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier
-                            .padding(horizontal = 5.dp)
-                            .heightIn(min = 48.dp)
-                    )
 
 
                 }
@@ -515,10 +583,15 @@ fun ScrapnelCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 6.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(8.dp))
                         .fillMaxWidth()
-                        .background(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                        .background(brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                            )
+                        ))
 
                 ) {
                     Text(
@@ -529,7 +602,7 @@ fun ScrapnelCard(
                         color = MaterialTheme.colorScheme.onPrimary,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleLarge.copy(drawStyle = Stroke(width = 4f))
                     )
                 }
 
@@ -550,7 +623,7 @@ fun ScrapnelCard(
                 )
             }
 
-            if (isChecked) {
+            if (showDeleteOverlay) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -569,15 +642,24 @@ fun ScrapnelCard(
             }
 
 
+
         }
     }
 }
 
 
 @Composable
-fun ChipsAndFilter(chipsList: List<String>, isFiltering: Boolean) {
+fun ChipsAndFilter(chipsList: List<String>, isFiltering: Boolean, scrapnelViewModel: ViewScrapnelViewModel) {
     var isFiltering by remember { mutableStateOf(false) }
     var selectedChip by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(selectedChip) {
+        if (selectedChip != null) {
+            scrapnelViewModel.loadScrapnelsByTitle(selectedChip!!)
+        } else {
+           scrapnelViewModel.loadScrapnels()
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -601,81 +683,8 @@ fun ChipsAndFilter(chipsList: List<String>, isFiltering: Boolean) {
             )
 
         }
-
-//        if (!isFiltering) {
-//
-//            Card(
-//                modifier = Modifier
-//                    .height(45.dp)
-//                    .width(55.dp),
-//                shape = RoundedCornerShape(
-//                    topStart = 20.dp,
-//                    topEnd = 0.dp,
-//                    bottomStart = 20.dp,
-//                    bottomEnd = 0.dp
-//                )
-//            ) {
-//                Box(
-//                    modifier = Modifier
-//                        .background(brush = verticalGradientBrushDark)
-//                        .fillMaxSize()
-//                )
-//                {
-//                    IconButton(
-//                        onClick = {}, modifier = Modifier
-//                            .padding(2.dp)
-//                            .fillMaxSize()
-//                    ) {
-//                        Icon(
-//                            painter = painterResource(R.drawable.ic_filter),
-//                            contentDescription = "Filter",
-//                            modifier = Modifier.size(24.dp),
-//
-//                            )
-//                    }
-//                }
-//
-//            }
-//
-//
-//        }
-//        if (isFiltering) {
-//
-//            Card(
-//                modifier = Modifier
-//                    .height(45.dp)
-//                    .width(55.dp),
-//                shape = RoundedCornerShape(
-//                    topStart = 20.dp,
-//                    topEnd = 0.dp,
-//                    bottomStart = 20.dp,
-//                    bottomEnd = 0.dp
-//                )
-//            ) {
-//                Box(
-//                    modifier = Modifier
-//                        .background(brush = verticalGradientBrushDark)
-//                        .fillMaxSize()
-//                )
-//                {
-//                    Text(
-//                        text = "Clear",
-//                        modifier = Modifier
-//                            .clickable(onClick = {})
-//                            .padding(top = 12.dp)
-//                            .fillMaxSize(),
-//                        color = MaterialTheme.colorScheme.onSecondary,
-//                        style = MaterialTheme.typography.titleSmall,
-//                        textAlign = TextAlign.Center
-//
-//                    )
-//                }
-//
-//            }
-//        }
     }
 }
-
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -794,6 +803,34 @@ fun FilterDialog(
     }
 
 
+}
+
+@Composable
+fun MiniImageStack(images: List<Uri>) {
+
+    Box(
+        modifier = Modifier
+            .height(129.dp)
+            .fillMaxWidth(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        images.forEachIndexed { index, uri ->
+            val offsetY = (images.size - 1 - index) * 10.dp
+            val offsetX = (images.size - 1 - index) * 5.dp
+            val rotation = (images.size - 1 - (index-1)) * 15f
+
+            Image(
+                painter = rememberAsyncImagePainter(uri),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .offset(y = -offsetY, x = -offsetX)
+                    .graphicsLayer { rotationZ = -rotation }
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(10.dp))
+            )
+        }
+    }
 }
 
 

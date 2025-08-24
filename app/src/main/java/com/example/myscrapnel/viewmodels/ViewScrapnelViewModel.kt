@@ -50,6 +50,12 @@ class ViewScrapnelViewModel(private val repository: ViewScrapnelRepository) : Vi
 
     }
 
+    fun loadScrapnelsByTitle(title: String) {
+        viewModelScope.launch {
+            _scrapnelItems.value = repository.getScrapnelsByTitle(title)
+        }
+    }
+
     
      fun selectCheckedItems(item: ScrapnelUiModel, isChecked: Boolean) {
         if (isChecked) {
