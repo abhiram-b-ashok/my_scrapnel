@@ -8,13 +8,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,6 +50,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -74,13 +79,18 @@ import com.example.myscrapnel.utils.getTimestamp
 import com.example.myscrapnel.viewmodels.MyScrapnelViewModel
 import com.example.myscrapnel.viewmodels.MyScrapnelViewModelFactory
 import com.example.myscrapnel.viewmodels.SaveScrapnelRepository
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import java.util.Calendar
 
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
-fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavController,itemToEditFromScrapnel: Long?) {
+fun CreateScrapnelPage(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    itemToEditFromScrapnel: Long?
+) {
     val calendar = Calendar.getInstance()
     var year by remember { mutableStateOf("${calendar.get(Calendar.YEAR)}") }
     var month by remember { mutableStateOf("${calendar.get(Calendar.MONTH) + 1}") }
@@ -107,15 +117,14 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavControlle
     LaunchedEffect(itemToEditFromScrapnel)
     {
         if (itemToEditFromScrapnel != null) {
-           viewModel.loadTheScrapnelToEdit(itemToEditFromScrapnel)
+            viewModel.loadTheScrapnelToEdit(itemToEditFromScrapnel)
         }
     }
 
 
     LaunchedEffect(itemToEdit)
     {
-        if (itemToEdit != null)
-        {
+        if (itemToEdit != null) {
             title = itemToEdit.title
             scrapnelTextField = itemToEdit.content
             year = convertedTimeStamp[2]
@@ -130,7 +139,7 @@ fun CreateScrapnelPage(modifier: Modifier = Modifier,navController: NavControlle
 
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Header(modifier = modifier,navController)
+        Header(modifier = modifier, navController)
 
         Main(
             year = year,
@@ -185,9 +194,12 @@ private fun Header(
                     bottom = 8.dp
                 )
             )
+            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground))
     ) {
-        IconButton(onClick = {  navController.navigate("home") {
-        }}) {
+        IconButton(onClick = {
+            navController.navigate("home") {
+            }
+        }) {
             Icon(
                 painter = painterResource(R.drawable.ic_back),
                 contentDescription = "Back",
@@ -224,14 +236,20 @@ private fun Main(
 //    var title by remember { mutableStateOf(titlee) }
 //    var scrapnelTextField by remember { mutableStateOf(TextFieldValue(scrapnelTextFieldToEdit)) }
     var title by remember(titlee) { mutableStateOf(titlee) }
-    var scrapnelTextField by remember(scrapnelTextFieldToEdit) { mutableStateOf(TextFieldValue(scrapnelTextFieldToEdit)) }
+    var scrapnelTextField by remember(scrapnelTextFieldToEdit) {
+        mutableStateOf(
+            TextFieldValue(
+                scrapnelTextFieldToEdit
+            )
+        )
+    }
 
     var isText by remember { mutableStateOf(true) }
     var isImage by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var isPreview by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
-    val monthName = months[month.toInt()-1].name
+    val monthName = months[month.toInt() - 1].name
     val context = LocalContext.current
     val timestamp = getTimestamp(year, month, day, hour, minute)
 
@@ -251,7 +269,8 @@ private fun Main(
                 }
 
                 if (imagePaths.isNotEmpty()) {
-                    val imageUrisText = imagePaths.joinToString(separator = "\n") { path -> "🖼️ file://$path" }
+                    val imageUrisText =
+                        imagePaths.joinToString(separator = "\n") { path -> "🖼️ file://$path" }
 
                     val newText = scrapnelTextField.text + "\n$imageUrisText\n"
                     scrapnelTextField = TextFieldValue(
@@ -313,9 +332,10 @@ private fun Main(
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Box(modifier = Modifier
-                    .clickable { onDateClick() }
-                    .matchParentSize())
+                Box(
+                    modifier = Modifier
+                        .clickable { onDateClick() }
+                        .matchParentSize())
                 {
 
                 }
@@ -326,15 +346,16 @@ private fun Main(
                     .weight(0.5f)
             ) {
                 OutlinedTextField(
-                    value = month,
+                    value = monthName,
                     onValueChange = {},
                     label = { Text("Month") },
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Box(modifier = Modifier
-                    .clickable { onDateClick() }
-                    .matchParentSize())
+                Box(
+                    modifier = Modifier
+                        .clickable { onDateClick() }
+                        .matchParentSize())
                 {
 
                 }
@@ -351,9 +372,10 @@ private fun Main(
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Box(modifier = Modifier
-                    .clickable { onDateClick() }
-                    .matchParentSize())
+                Box(
+                    modifier = Modifier
+                        .clickable { onDateClick() }
+                        .matchParentSize())
                 {
 
                 }
@@ -379,9 +401,10 @@ private fun Main(
                     modifier = Modifier.fillMaxWidth(),
                     readOnly = true
                 )
-                Box(modifier = Modifier
-                    .clickable { onTimeClick() }
-                    .matchParentSize())
+                Box(
+                    modifier = Modifier
+                        .clickable { onTimeClick() }
+                        .matchParentSize())
             }
             Box(
                 modifier = Modifier
@@ -394,9 +417,10 @@ private fun Main(
                     modifier = Modifier.fillMaxWidth(),
                     readOnly = true
                 )
-                Box(modifier = Modifier
-                    .clickable { onTimeClick() }
-                    .matchParentSize())
+                Box(
+                    modifier = Modifier
+                        .clickable { onTimeClick() }
+                        .matchParentSize())
                 {
 
                 }
@@ -417,13 +441,14 @@ private fun Main(
             maxLines = 1,
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
 
-        Box(modifier = Modifier.padding(top = 16.dp)
+        Box(
+            modifier = Modifier.height(250.dp)
         )
         {
             val focusManager = LocalFocusManager.current
             val focusRequester = remember { FocusRequester() }
-
 
             OutlinedTextField(
                 value = scrapnelTextField,
@@ -432,79 +457,20 @@ private fun Main(
                 textStyle = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(250.dp).focusRequester(focusRequester)
-                ,
+                    .height(250.dp)
+                    .focusRequester(focusRequester),
                 singleLine = false
             )
-
-
-            Row(modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd)) {
-                    IconButton(onClick = { isText = !isText
-                        if (!isText)
-                        {
-                            focusManager.clearFocus()
-                        }
-                        else{
-                            focusRequester.requestFocus()
-                        }
-
-                    }) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_text),
-                            contentDescription = "Camera",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(20.dp)
-                        )
-
-                    }
-                    IconButton(onClick = {isImage= ! isImage
-                        isText = false
-                    }) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_image),
-                            contentDescription = "Location",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    IconButton(onClick = {  if (title.isBlank() || scrapnelTextField.text.isBlank()) {
-                        showErrorDialog = true
-                    } else {
-                        isSaving = !isSaving
-                    }}) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_save),
-                            contentDescription = "Link",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    IconButton(onClick = { if (title.isBlank() || scrapnelTextField.text.isBlank()) {
-                        showErrorDialog = true
-                    } else {
-                        isPreview = true
-                    }
-                    }) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_preview),
-                            contentDescription = "Emoji",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
             if (isImage) {
                 Box(
                     modifier = Modifier
-                        .align(androidx.compose.ui.Alignment.Center)
-                        .size(200.dp, 150.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .fillMaxWidth()
+                        .height(250.dp).padding(top = 8.5.dp)
+                        .clip(RoundedCornerShape(6.dp))
                         .background(Color(0xAA000000)),
-                    contentAlignment = androidx.compose.ui.Alignment.Center,
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                    ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         IconButton(onClick = {
                             pickImages.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -528,17 +494,106 @@ private fun Main(
                 }
             }
 
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 8.dp, bottom = 8.dp)
+            ) {
+                ShadedIconButton(
+                    selected = isText,
+                    onClick = {
+                        if (isText) {
+                            isText = false
+                            focusManager.clearFocus()
+                        } else {
+                            isText = true
+                            isImage = false
+                            focusRequester.requestFocus()
+                        }
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_text),
+                        contentDescription = "Text",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                ShadedIconButton(
+                    selected = isImage,
+                    onClick = {
+                        if (isImage) {
+                            isImage = false
+                        } else {
+                            isImage = true
+                            isText = false
+                            focusManager.clearFocus()
+                        }
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_image),
+                        contentDescription = "Image",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                ShadedIconButton(
+                    onClick = {
+                        isText = false
+                        isImage = false
+                        focusManager.clearFocus()
+                        if (title.isBlank() || scrapnelTextField.text.isBlank()) {
+                            showErrorDialog = true
+                        } else {
+                            isSaving = !isSaving
+                        }
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_save),
+                        contentDescription = "Save",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                ShadedIconButton(
+                    onClick = {
+                        isText = false
+                        isImage = false
+                        focusManager.clearFocus()
+                        if (title.isBlank() || scrapnelTextField.text.isBlank()) {
+                            showErrorDialog = true
+                        } else {
+                            isPreview = true
+                        }
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_preview),
+                        contentDescription = "Preview",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+
+
             if (isPreview) {
-               PreviewScrapnel(
-                   title = title,
-                   scrapnelText = scrapnelTextField.text,
-                   year = year,
-                   month = monthName,
-                   day = day,
-                   hour = hour,
-                   minute = minute,
-                   onDismiss = { isPreview = false },
-               )
+                PreviewScrapnel(
+                    title = title,
+                    scrapnelText = scrapnelTextField.text,
+                    year = year,
+                    month = monthName,
+                    day = day,
+                    hour = hour,
+                    minute = minute,
+                    onDismiss = { isPreview = false },
+                )
             }
 
             if (showErrorDialog) {
@@ -549,42 +604,63 @@ private fun Main(
                             Text("OK")
                         }
                     },
-                    title = { Text("Validation Error", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground) },
-                    text = { Text("Enter All Fields", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground) },
+                    title = {
+                        Text(
+                            "Validation Error",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    },
+                    text = {
+                        Text(
+                            "Enter All Fields",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    },
                     containerColor = MaterialTheme.colorScheme.background
                 )
             }
         }
 
-        FilledTonalButton(
-            shape = RoundedCornerShape(16.dp),
-            onClick = {
-                if (title.isBlank() || scrapnelTextField.text.isBlank()) {
-                    showErrorDialog = true
-                } else {
-                    isSaving = true
-                    if (itemToEdit != null) {
-                        viewModel.updateScrapnel(scrapnelEntity)
-                    } else {
-                        viewModel.saveScrapnel(scrapnelEntity)
-                    }
 
-                }
-            },
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 36.dp),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
+                .padding(top = 36.dp)
         ) {
-            Text(
-                text = "Save Scrapnel",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
+            FilledTonalButton(
+                onClick = {
+                    if (title.isBlank() || scrapnelTextField.text.isBlank()) {
+                        showErrorDialog = true
+                    } else {
+                        isSaving = true
+
+                        if (itemToEdit != null) {
+                            viewModel.updateScrapnel(scrapnelEntity)
+                        } else {
+                            viewModel.saveScrapnel(scrapnelEntity)
+                        }
+
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Save Scrapnel",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
         }
+
     }
     if (isSaveFailed) {
         AlertDialog(
@@ -595,9 +671,10 @@ private fun Main(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { isSaveFailed = false
+                TextButton(onClick = {
+                    isSaveFailed = false
                     viewModel.loadTheScrapnelToEdit(foundTimeStamp!!)
-                    isEditing =true
+                    isEditing = true
                 }) {
                     Text("Edit")
                 }
@@ -626,7 +703,6 @@ private fun Main(
 }
 
 
-
 @Composable
 fun DateSelectDialog(
     isShowDialog: Boolean,
@@ -641,12 +717,17 @@ fun DateSelectDialog(
     var selectedDay by remember { mutableStateOf(currentDay) }
     var selectedMonthIndex by remember { mutableStateOf(currentMonth) }
     var selectedYear by remember { mutableStateOf(currentYear) }
-
+    val filteredMonths = if (selectedYear == currentYear) {
+        months.subList(0, currentMonth + 1)
+    } else {
+        months
+    }
     var days by remember {
         mutableStateOf((1..months[selectedMonthIndex].numberOfDays).toList())
     }
 
-    val monthList = months.map { it.name }
+    val monthList = filteredMonths.map { it.name }
+
     val years = (1970..2025).toList()
 
     if (isShowDialog) {
@@ -657,12 +738,20 @@ fun DateSelectDialog(
                     onDateSelected(selectedYear, selectedMonthIndex, selectedDay)
                     onDismiss()
                 }, modifier = Modifier.padding(end = 16.dp)) {
-                    Icon(imageVector = Icons.Default.Check, contentDescription = null,  tint = MaterialTheme.colorScheme.onBackground)
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             },
             dismissButton = {
                 IconButton(onClick = { onDismiss() }, modifier = Modifier.padding(end = 16.dp)) {
-                    Icon(imageVector = Icons.Default.Clear, contentDescription = null,  tint = MaterialTheme.colorScheme.onBackground)
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             },
             text = {
@@ -676,17 +765,51 @@ fun DateSelectDialog(
                     NumberPickerView(
                         value = selectedYear,
                         range = years,
-                        onValueChange = { selectedYear = it }
+                        onValueChange = {
+                            selectedYear = it
+
+                            val maxDaysOfMonth = months[selectedMonthIndex].numberOfDays
+                            val today = Calendar.getInstance()
+
+                            val isCurrentMonth = selectedMonthIndex == today.get(Calendar.MONTH)+1
+                            val isCurrentYear = it == today.get(Calendar.YEAR)
+
+                            val maxDay = if (isCurrentMonth && isCurrentYear) {
+                                today.get(Calendar.DAY_OF_MONTH)
+                            } else {
+                                maxDaysOfMonth
+                            }
+
+                            days = (1..maxDay).toList()
+
+                            if (selectedDay > days.last()) selectedDay = days.last()
+                        }
                     )
+
                     NumberPickerStringView(
                         displayedValues = monthList,
                         value = selectedMonthIndex,
                         onValueChange = {
                             selectedMonthIndex = it
-                            days = (1..months[it].numberOfDays).toList()
+
+                            val maxDaysOfMonth = months[it].numberOfDays
+                            val today = Calendar.getInstance()
+
+                            val isCurrentMonth = it == today.get(Calendar.MONTH)+1
+                            val isCurrentYear = selectedYear == today.get(Calendar.YEAR)
+
+                            val maxDay = if (isCurrentMonth && isCurrentYear) {
+                                today.get(Calendar.DAY_OF_MONTH)
+                            } else {
+                                maxDaysOfMonth
+                            }
+
+                            days = (1..maxDay).toList()
+
                             if (selectedDay > days.last()) selectedDay = days.last()
                         }
                     )
+
                     NumberPickerView(
                         value = selectedDay,
                         range = days,
@@ -721,12 +844,20 @@ fun TimeSelectDialog(
                     onTimeSelected(selectedHour, selectedMinute)
                     onDismiss()
                 }, modifier = Modifier.padding(end = 16.dp)) {
-                    Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             },
             dismissButton = {
                 IconButton(onClick = { onDismiss() }, modifier = Modifier.padding(end = 16.dp)) {
-                    Icon(imageVector = Icons.Default.Clear, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             },
             text = {
@@ -835,3 +966,26 @@ val months = listOf(
 )
 
 
+@Composable
+fun ShadedIconButton(
+    selected: Boolean = false,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit
+) {
+    val backgroundColor = if (selected)
+        Color.Black.copy(alpha = 0.3f)
+    else
+        Color.White.copy(alpha = 0.2f)
+
+    Box(
+        modifier = Modifier
+            .padding(4.dp)
+            .size(40.dp)
+            .clip(RoundedCornerShape(50))
+            .background(backgroundColor)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        icon()
+    }
+}

@@ -180,7 +180,7 @@ private fun Header(
 
     Row(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.primary)
             .fillMaxWidth()
             .padding(
                 PaddingValues(
@@ -190,11 +190,14 @@ private fun Header(
                     bottom = 8.dp
                 )
             )
+            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground))
     ) {
         Text(
             text = title,
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp),
+            color = MaterialTheme.colorScheme.onPrimary,
             style = MaterialTheme.typography.headlineLarge
         )
         Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -209,7 +212,7 @@ private fun Header(
                             stopDeleteMode()
 
                         },
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
 
@@ -219,7 +222,7 @@ private fun Header(
                 Icon(
                     painter = painterResource(R.drawable.ic_delete),
                     contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onBackground,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -229,7 +232,7 @@ private fun Header(
                     Icon(
                         painter = painterResource(R.drawable.ic_filter),
                         contentDescription = "Filter",
-                        tint = MaterialTheme.colorScheme.onBackground,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -245,7 +248,7 @@ private fun Header(
                             onClearFilter()
 
                         },
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
 
             }
@@ -311,7 +314,7 @@ fun ScrapnelListScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         if (!isDataLoaded) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        }else if (isLoading) {
+        } else if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (scrapnelItems.isEmpty()) {
             EmptyScreen(navController, Modifier.align(Alignment.Center))
@@ -411,15 +414,13 @@ fun ScrapnelCard(
         showDeleteOverlay = isChecked && isDeleting
     }
 
-
-
     Card(
         modifier = Modifier.height(215.dp),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 5.dp
         ),
-        border = BorderStroke(5.dp, MaterialTheme.colorScheme.tertiary)
+        border = BorderStroke(5.dp, MaterialTheme.colorScheme.onBackground)
     ) {
         Box(
             modifier = Modifier
@@ -441,23 +442,22 @@ fun ScrapnelCard(
 
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth().padding(top = 5.dp),
+                        .fillMaxWidth()
+                        .padding(top = 5.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
 
                     val hasImage = !item.imageUris.isNullOrEmpty()
-                    val hasText = item.fullText?.isNotBlank() == true
+                    val hasText = item.fullText.isNotBlank()
                     val hasMultipleImages = item.imageUris?.size!! > 1
-                    val uriList = item.imageUris.mapNotNull { it.toUri() }
+                    val uriList = item.imageUris.map { it.toUri() }
 
 
 
-                    if (hasImage && hasMultipleImages && !hasText){
-                                MiniImageStack(uriList.take(3))
-                    }
-
-                    else if (hasImage && hasText) {
+                    if (hasImage && hasMultipleImages && !hasText) {
+                        MiniImageStack(uriList.take(3))
+                    } else if (hasImage && hasText) {
                         Row(
                             modifier = Modifier
                                 .padding(horizontal = 5.dp)
@@ -469,14 +469,24 @@ fun ScrapnelCard(
                                 modifier = Modifier
                                     .width(79.dp)
                                     .height(79.dp)
-                                    .padding(top = 5.dp, end = 5.dp)
+                                    .padding(top = 5.dp, end = 5.dp),
+                                shape = RoundedCornerShape(0.dp)
+
                             ) {
                                 Image(
                                     painter = rememberAsyncImagePainter(model = item.imageUris[0]),
                                     contentDescription = null,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(RoundedCornerShape(8.dp)),
+                                        .background(color = Color.White)
+                                        .clip(RoundedCornerShape(0.dp))
+                                        .border(
+                                            BorderStroke(
+                                                2.dp,
+                                                MaterialTheme.colorScheme.onBackground
+                                            )
+                                        )
+                                        .padding(5.dp),
                                     contentScale = ContentScale.FillBounds
                                 )
                             }
@@ -517,13 +527,23 @@ fun ScrapnelCard(
                                 modifier = Modifier
                                     .width(79.dp)
                                     .height(79.dp)
+                                    .padding(5.dp),
+                                shape = RoundedCornerShape(0.dp)
                             ) {
                                 Image(
                                     painter = rememberAsyncImagePainter(model = item.imageUris[0]),
                                     contentDescription = null,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(RoundedCornerShape(8.dp)),
+                                        .background(color = Color.White)
+                                        .clip(RoundedCornerShape(0.dp))
+                                        .border(
+                                            BorderStroke(
+                                                2.dp,
+                                                MaterialTheme.colorScheme.onBackground
+                                            )
+                                        )
+                                        .padding(5.dp),
                                     contentScale = ContentScale.FillBounds
                                 )
                             }
@@ -563,19 +583,18 @@ fun ScrapnelCard(
                     }
 
 
-            if (secondTextViewText.isNotBlank()){
-                Text(
-                    text = secondTextViewText,
-                    maxLines = 5,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier
-                        .padding(horizontal = 5.dp)
-                        .heightIn(min = 53.dp)
-                )
-            }
-
+                    if (secondTextViewText.isNotBlank()) {
+                        Text(
+                            text = secondTextViewText,
+                            maxLines = 5,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .padding(horizontal = 5.dp)
+                                .heightIn(min = 53.dp)
+                        )
+                    }
 
 
                 }
@@ -584,14 +603,17 @@ fun ScrapnelCard(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 8.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(0.dp))
                         .fillMaxWidth()
-                        .background(brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                )
                             )
-                        ))
+                        )
+                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onPrimary))
 
                 ) {
                     Text(
@@ -642,14 +664,17 @@ fun ScrapnelCard(
             }
 
 
-
         }
     }
 }
 
 
 @Composable
-fun ChipsAndFilter(chipsList: List<String>, isFiltering: Boolean, scrapnelViewModel: ViewScrapnelViewModel) {
+fun ChipsAndFilter(
+    chipsList: List<String>,
+    isFiltering: Boolean,
+    scrapnelViewModel: ViewScrapnelViewModel
+) {
     var isFiltering by remember { mutableStateOf(false) }
     var selectedChip by remember { mutableStateOf<String?>(null) }
 
@@ -657,7 +682,7 @@ fun ChipsAndFilter(chipsList: List<String>, isFiltering: Boolean, scrapnelViewMo
         if (selectedChip != null) {
             scrapnelViewModel.loadScrapnelsByTitle(selectedChip!!)
         } else {
-           scrapnelViewModel.loadScrapnels()
+            scrapnelViewModel.loadScrapnels()
         }
     }
 
@@ -703,12 +728,12 @@ fun TitleChips(
                 label = { Text(chip) },
                 modifier = Modifier.padding(start = 8.dp, end = 2.dp),
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                    containerColor = MaterialTheme.colorScheme.background,
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
                     labelColor = MaterialTheme.colorScheme.onPrimary,
                     selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
                 ),
-                border = null,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground),
                 shape = CircleShape
 
             )
@@ -817,7 +842,7 @@ fun MiniImageStack(images: List<Uri>) {
         images.forEachIndexed { index, uri ->
             val offsetY = (images.size - 1 - index) * 10.dp
             val offsetX = (images.size - 1 - index) * 5.dp
-            val rotation = (images.size - 1 - (index-1)) * 15f
+            val rotation = (images.size - 1 - (index - 1)) * 15f
 
             Image(
                 painter = rememberAsyncImagePainter(uri),
@@ -827,8 +852,12 @@ fun MiniImageStack(images: List<Uri>) {
                     .offset(y = -offsetY, x = -offsetX)
                     .graphicsLayer { rotationZ = -rotation }
                     .size(80.dp)
-                    .clip(RoundedCornerShape(10.dp))
-            )
+                    .background(color = Color.White)
+                    .clip(RoundedCornerShape(0.dp))
+                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground))
+                    .padding(5.dp),
+
+                )
         }
     }
 }
