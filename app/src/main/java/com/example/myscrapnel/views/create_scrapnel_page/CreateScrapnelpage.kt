@@ -71,7 +71,6 @@ import androidx.room.Room
 import com.example.myscrapnel.R
 import com.example.myscrapnel.room_db.ScrapnelDatabase
 import com.example.myscrapnel.room_db.ScrapnelEntity
-import com.example.myscrapnel.utils.convertTimestampToDateTimeComponent
 import com.example.myscrapnel.utils.convertTimestampToDateTimeComponents
 import com.example.myscrapnel.utils.copyImageToInternalStorage
 import com.example.myscrapnel.utils.extractDateFromTimestamp
@@ -194,7 +193,7 @@ private fun Header(
                     bottom = 8.dp
                 )
             )
-            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground))
+
     ) {
         IconButton(onClick = {
             navController.navigate("home") {
@@ -244,7 +243,7 @@ private fun Main(
         )
     }
 
-    var isText by remember { mutableStateOf(true) }
+    var isText by remember { mutableStateOf(false) }
     var isImage by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var isPreview by remember { mutableStateOf(false) }
@@ -427,18 +426,22 @@ private fun Main(
             }
         }
 
-        val maxTitleLength = 27
+        val maxTitleLength = 28
+        var isTitleError by remember { mutableStateOf(false) }
+        var isScrapnelError by remember { mutableStateOf(false) }
 
         OutlinedTextField(
             value = title,
             onValueChange = {
                 if (it.length <= maxTitleLength) {
                     title = it
+                    isTitleError = false
                 }
             },
             label = { Text("Title") },
             modifier = Modifier.padding(top = 16.dp),
             maxLines = 1,
+            isError = isTitleError
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -449,17 +452,26 @@ private fun Main(
         {
             val focusManager = LocalFocusManager.current
             val focusRequester = remember { FocusRequester() }
+            LaunchedEffect(isText) {
+                if (isText) {
+                    delay(100)
+                    focusRequester.requestFocus()
+                }
+            }
 
             OutlinedTextField(
                 value = scrapnelTextField,
-                onValueChange = { scrapnelTextField = it },
+                onValueChange = { scrapnelTextField = it
+                                isScrapnelError = false},
                 label = { Text("Write Scrapnel") },
                 textStyle = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(250.dp)
                     .focusRequester(focusRequester),
-                singleLine = false
+                singleLine = false,
+                enabled = !isImage,
+                isError = isScrapnelError
             )
             if (isImage) {
                 Box(
@@ -525,10 +537,13 @@ private fun Main(
                     onClick = {
                         if (isImage) {
                             isImage = false
+                            isText = true
+
                         } else {
                             isImage = true
                             isText = false
                             focusManager.clearFocus()
+
                         }
                     }
                 ) {
@@ -549,6 +564,7 @@ private fun Main(
                             showErrorDialog = true
                         } else {
                             isSaving = !isSaving
+
                         }
                     }
                 ) {
@@ -567,6 +583,7 @@ private fun Main(
                         focusManager.clearFocus()
                         if (title.isBlank() || scrapnelTextField.text.isBlank()) {
                             showErrorDialog = true
+                            isText=true
                         } else {
                             isPreview = true
                         }
@@ -624,16 +641,15 @@ private fun Main(
         }
 
 
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 36.dp)
-        ) {
+        Spacer(modifier = Modifier.height(36.dp))
+
+
             FilledTonalButton(
                 onClick = {
-                    if (title.isBlank() || scrapnelTextField.text.isBlank()) {
+                    isTitleError = title.isBlank()
+                    isScrapnelError = scrapnelTextField.text.isBlank()
+
+                    if (isTitleError || isScrapnelError) {
                         showErrorDialog = true
                     } else {
                         isSaving = true
@@ -643,15 +659,15 @@ private fun Main(
                         } else {
                             viewModel.saveScrapnel(scrapnelEntity)
                         }
-
                     }
-                },
+                }
+                ,
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().padding(top = 36.dp)
             ) {
                 Text(
                     text = "Save Scrapnel",
@@ -661,7 +677,7 @@ private fun Main(
             }
         }
 
-    }
+
     if (isSaveFailed) {
         AlertDialog(
             onDismissRequest = { isSaveFailed = false },
@@ -973,7 +989,8 @@ fun ShadedIconButton(
     icon: @Composable () -> Unit
 ) {
     val backgroundColor = if (selected)
-        Color.Black.copy(alpha = 0.3f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+
     else
         Color.White.copy(alpha = 0.2f)
 

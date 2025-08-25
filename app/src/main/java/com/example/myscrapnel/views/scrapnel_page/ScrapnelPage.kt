@@ -59,8 +59,8 @@ import coil.request.ImageRequest
 import com.example.myscrapnel.R
 import com.example.myscrapnel.room_db.ScrapnelDatabase
 import com.example.myscrapnel.room_db.ScrapnelEntity
-import com.example.myscrapnel.utils.convertTimestampToDateTimeComponent
 import com.example.myscrapnel.utils.convertTimestampToDateTimeComponents
+import com.example.myscrapnel.utils.formatTimestampToString
 import com.example.myscrapnel.viewmodels.ViewScrapnelRepository
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModel
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModelFactory
@@ -80,9 +80,12 @@ fun ScrapnelPage(modifier: Modifier = Modifier, navController: NavController, ti
     val scrapnelViewModelFactory = ViewScrapnelViewModelFactory(scrapnelRepository)
     val scrapnelViewModel: ViewScrapnelViewModel = viewModel(factory = scrapnelViewModelFactory)
     val scrapnel by scrapnelViewModel.scrapnel.collectAsState()
+
     LaunchedEffect(Unit) {
+        println("ScrapnelPage received timestamp: $timestamp")
         scrapnelViewModel.loadScrapnel(timestamp)
     }
+
 
     Column {
         Header(modifier, navController, timestamp)
@@ -147,16 +150,11 @@ private fun Main(scrapnel: ScrapnelEntity?) {
     val scrollState = rememberScrollState()
 
     val timestamp = scrapnel?.timeStamp
-    val dateAndTime = convertTimestampToDateTimeComponent(timestamp)
     val title = scrapnel?.title
     val content = scrapnel?.content
-
-    var year by remember { mutableStateOf(dateAndTime[2]) }
-    var month by remember { mutableStateOf(dateAndTime[1]) }
-    var day by remember { mutableStateOf(dateAndTime[0]) }
-    var hour by remember { mutableStateOf(dateAndTime[3]) }
-    var minute by remember { mutableStateOf(dateAndTime[4]) }
     val imagesList = mutableListOf<Uri>()
+    val date = formatTimestampToString(timestamp)
+
 
     Column(
         modifier = Modifier
@@ -181,28 +179,7 @@ private fun Main(scrapnel: ScrapnelEntity?) {
         }
         Row(modifier = Modifier.padding(bottom = 10.dp)) {
             Text(
-                text = "$month, ",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "$day, ",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = year,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "$hour:",
-                modifier = Modifier.padding(start = 5.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = minute,
+                text = "$date, ",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground
             )

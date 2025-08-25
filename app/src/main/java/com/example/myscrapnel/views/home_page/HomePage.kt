@@ -1,6 +1,7 @@
 package com.example.myscrapnel.views.home_page
 
 
+import android.R.attr.contentDescription
 import android.R.attr.maxLines
 import android.R.attr.text
 import android.annotation.SuppressLint
@@ -36,6 +37,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
@@ -74,6 +76,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -145,7 +148,8 @@ fun Homepage(modifier: Modifier = Modifier, navController: NavController) {
             },
             scrapnelViewModel,
             stopDeleteMode = { stopDeleteMode() },
-            isDeleting
+            isDeleting,
+            scrapnelViewModel
         )
 
         Main(isDeleting = isDeleting, navController, scrapnelViewModel, isFiltering, filterKey)
@@ -175,52 +179,67 @@ private fun Header(
     onClearFilter: () -> Unit,
     scrapnelViewModel: ViewScrapnelViewModel,
     stopDeleteMode: () -> Unit,
-    isDeleting: Boolean
+    isDeleting: Boolean,
+    viewScrapnelViewModel: ViewScrapnelViewModel
 ) {
+
+    val selectedItems by viewScrapnelViewModel.selectedItemsToDelete.collectAsState()
+
+    val hasSelectedItems = selectedItems.isNotEmpty()
+
 
     Row(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.primary)
             .fillMaxWidth()
             .padding(
                 PaddingValues(
                     top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                    start = 15.dp,
-                    end = 15.dp,
-                    bottom = 8.dp
+                    start = 10.dp,
+                    end = 10.dp,
+                    bottom = 5.dp
                 )
             )
             .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground))
+            .background(MaterialTheme.colorScheme.primary),
+        verticalAlignment = Alignment.CenterVertically
+
     ) {
         Text(
             text = title,
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 10.dp),
+                .padding(start = 8.dp),
             color = MaterialTheme.colorScheme.onPrimary,
             style = MaterialTheme.typography.headlineLarge
         )
-        Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
 
-            if (isDeleting) {
+            if (isDeleting && hasSelectedItems) {
                 Text(
                     text = "Delete",
                     modifier = Modifier
-                        .padding(start = 4.dp)
                         .clickable {
                             scrapnelViewModel.deleteSelectedItems()
                             stopDeleteMode()
-
                         },
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = Color.Red
                 )
             }
 
+
             IconButton(onClick = {
+                if (hasSelectedItems)
+                {
+                    scrapnelViewModel.clearSelectedItems()
+                    stopDeleteMode()
+
+                }
                 startDelete()
-            }) {
+            },
+                modifier = Modifier.size(36.dp)) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_delete),
+                    painter = painterResource(if (isDeleting) R.drawable.ic_delete_red else R.drawable.ic_delete),
                     contentDescription = "Delete",
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(20.dp)
@@ -228,7 +247,10 @@ private fun Header(
             }
 
             if (!isFiltering) {
-                IconButton(onClick = { showDialog() }) {
+                IconButton(onClick = { showDialog()
+                    stopDeleteMode()
+                },
+                    modifier = Modifier.size(36.dp)) {
                     Icon(
                         painter = painterResource(R.drawable.ic_filter),
                         contentDescription = "Filter",
@@ -241,7 +263,7 @@ private fun Header(
                 Text(
                     text = "Clear",
                     modifier = Modifier
-                        .padding(start = 4.dp)
+                        .padding(horizontal = 4.dp)
                         .clickable {
                             scrapnelViewModel.loadScrapnels()
                             scrapnelViewModel.loadChipTitles()
@@ -294,7 +316,7 @@ fun ScrapnelListScreen(
 
 
     LaunchedEffect(Unit) {
-        delay(500)
+        delay(1000)
         isDataLoaded = true
     }
 
@@ -377,7 +399,11 @@ fun ScrapnelGrid(
 ) {
 
     val selectedItems = remember { mutableStateMapOf<Long, Boolean>() }
-
+    LaunchedEffect(isDeleting) {
+        if (!isDeleting) {
+            selectedItems.clear()
+        }
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -423,20 +449,20 @@ fun ScrapnelCard(
         border = BorderStroke(5.dp, MaterialTheme.colorScheme.onBackground)
     ) {
         Box(
-            modifier = Modifier
+            modifier = if (!isDeleting) Modifier
                 .fillMaxSize()
                 .clickable(onClick = {
                     navController.navigate("scrapnel/${item.timeStamp}")
                     Log.d("Navigation", "Navigating with timestamp: ${item.timeStamp}")
 
-                })
+                }) else Modifier.fillMaxSize()
 
         ) {
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(12.dp)
             ) {
 
@@ -613,7 +639,7 @@ fun ScrapnelCard(
                                 )
                             )
                         )
-                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onPrimary))
+                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary))
 
                 ) {
                     Text(
@@ -623,7 +649,7 @@ fun ScrapnelCard(
                             .padding(4.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
                         textAlign = TextAlign.Center,
-                        maxLines = 1,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.titleLarge.copy(drawStyle = Stroke(width = 4f))
                     )
                 }
@@ -730,8 +756,8 @@ fun TitleChips(
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    labelColor = MaterialTheme.colorScheme.onPrimary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+                    labelColor = MaterialTheme.colorScheme.onBackground,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                 ),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground),
                 shape = CircleShape
@@ -783,8 +809,9 @@ fun FilterDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = titleInput.isEmpty(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
 
-                        )
+                    )
                 }
             },
             confirmButton = {

@@ -6,6 +6,7 @@ import com.example.myscrapnel.models.scrapnel_ui_model.ScrapnelUiModel
 import com.example.myscrapnel.room_db.ScrapnelEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 
 
@@ -16,10 +17,12 @@ class ViewScrapnelViewModel(private val repository: ViewScrapnelRepository) : Vi
 
     private val _chipTitles = MutableStateFlow<List<String>>(emptyList())
     val chipTitles: StateFlow<List<String>> = _chipTitles
-    private val _selectedItemsToDelete = mutableListOf<ScrapnelUiModel>()
-
+    private val _selectedItemsToDelete = MutableStateFlow<List<ScrapnelUiModel>>(emptyList())
+    val selectedItemsToDelete: StateFlow<List<ScrapnelUiModel>> = _selectedItemsToDelete
     private val _scrapnel = MutableStateFlow<ScrapnelEntity?>(null)
     val scrapnel: StateFlow<ScrapnelEntity?> = _scrapnel
+
+
 
 
     fun loadChipTitles() {
@@ -56,22 +59,24 @@ class ViewScrapnelViewModel(private val repository: ViewScrapnelRepository) : Vi
         }
     }
 
-    
-     fun selectCheckedItems(item: ScrapnelUiModel, isChecked: Boolean) {
-        if (isChecked) {
-            _selectedItemsToDelete.add(item)
+
+    fun selectCheckedItems(item: ScrapnelUiModel, isChecked: Boolean) {
+        _selectedItemsToDelete.value = if (isChecked) {
+            _selectedItemsToDelete.value + item
         } else {
-            _selectedItemsToDelete.removeIf { it.timeStamp == item.timeStamp }
+            _selectedItemsToDelete.value.filterNot { it.timeStamp == item.timeStamp }
         }
     }
 
+
     fun clearSelectedItems() {
-        _selectedItemsToDelete.clear()
+        _selectedItemsToDelete.value = emptyList()
     }
+
 
     fun deleteSelectedItems() {
         viewModelScope.launch {
-            val itemsToDelete = _selectedItemsToDelete.toList()
+            val itemsToDelete = _selectedItemsToDelete.value
 
             val entitiesToDelete = itemsToDelete.mapNotNull { item ->
                 repository.getScrapnelEntityByTimestamp(item.timeStamp)
@@ -83,6 +88,7 @@ class ViewScrapnelViewModel(private val repository: ViewScrapnelRepository) : Vi
             loadChipTitles()
         }
     }
-    
+
+
 
 }
