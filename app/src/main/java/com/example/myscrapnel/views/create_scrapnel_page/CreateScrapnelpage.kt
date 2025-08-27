@@ -641,7 +641,7 @@ private fun Main(
         }
 
 
-        Spacer(modifier = Modifier.height(36.dp))
+        Spacer(modifier = Modifier.height(76.dp))
 
 
             FilledTonalButton(
@@ -834,7 +834,7 @@ fun DateSelectDialog(
 
                 }
             },
-            containerColor = MaterialTheme.colorScheme.background
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }

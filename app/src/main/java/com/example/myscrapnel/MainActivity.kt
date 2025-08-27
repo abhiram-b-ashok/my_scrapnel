@@ -39,6 +39,7 @@ class MainActivity : ComponentActivity() {
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
+
         setContent {
             MyScrapnelTheme {
                 val systemUiController = rememberSystemUiController()
