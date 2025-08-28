@@ -446,7 +446,7 @@ fun ScrapnelCard(
         elevation = CardDefaults.cardElevation(
             defaultElevation = 5.dp
         ),
-        border = BorderStroke(5.dp, MaterialTheme.colorScheme.onBackground)
+        border = BorderStroke(10.dp, MaterialTheme.colorScheme.background)
     ) {
         Box(
             modifier = if (!isDeleting) Modifier
@@ -462,14 +462,14 @@ fun ScrapnelCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(12.dp)
+                    .background(MaterialTheme.colorScheme.tertiary)
+                    .padding(vertical = 12.dp)
             ) {
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 5.dp),
+                        .padding(horizontal = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
@@ -634,12 +634,11 @@ fun ScrapnelCard(
                         .background(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 1f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0f)
                                 )
                             )
                         )
-                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary))
 
                 ) {
                     Text(

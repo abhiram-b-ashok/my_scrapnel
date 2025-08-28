@@ -1,8 +1,6 @@
 package com.example.myscrapnel.views.scrapnel_page
 
 import android.net.Uri
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +21,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -59,7 +61,6 @@ import coil.request.ImageRequest
 import com.example.myscrapnel.R
 import com.example.myscrapnel.room_db.ScrapnelDatabase
 import com.example.myscrapnel.room_db.ScrapnelEntity
-import com.example.myscrapnel.utils.convertTimestampToDateTimeComponents
 import com.example.myscrapnel.utils.formatTimestampToString
 import com.example.myscrapnel.viewmodels.ViewScrapnelRepository
 import com.example.myscrapnel.viewmodels.ViewScrapnelViewModel
@@ -152,10 +153,12 @@ private fun Main(scrapnel: ScrapnelEntity?) {
     val timestamp = scrapnel?.timeStamp
     val title = scrapnel?.title
     val content = scrapnel?.content
-    val imagesList = mutableListOf<Uri>()
     val date = formatTimestampToString(timestamp)
 
+    val pagerImageList = remember { mutableStateListOf<Uri>() }
 
+    var showViewPager by remember { mutableStateOf(false) }
+Box() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -164,10 +167,10 @@ private fun Main(scrapnel: ScrapnelEntity?) {
             .padding(16.dp),
         verticalArrangement = Arrangement.Top
     ) {
+        val imagesList = mutableListOf<Uri>()
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(
-
                 text = if (title.isNullOrEmpty()) "Untitled" else title,
                 modifier = Modifier
                     .padding(vertical = 4.dp)
@@ -175,8 +178,8 @@ private fun Main(scrapnel: ScrapnelEntity?) {
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
-
         }
+
         Row(modifier = Modifier.padding(bottom = 10.dp)) {
             Text(
                 text = "$date, ",
@@ -186,20 +189,30 @@ private fun Main(scrapnel: ScrapnelEntity?) {
         }
 
         content?.lines()?.forEach { line ->
-            if (line.isBlank()) {
-                return@forEach
-            }
+            if (line.isBlank()) return@forEach
 
             if (line.contains("🖼️")) {
-                imagesList.add(line.drop(4).toUri())
+                val uri = line.drop(4).toUri()
+                imagesList.add(uri)
+                pagerImageList.add(uri)
 
                 if (imagesList.size == 3) {
-                    ImageStack(images = imagesList)
+                    ImageStack(
+                        images = imagesList.toList(),
+                        onClick = {
+                            showViewPager = true
+                        }
+                    )
                     imagesList.clear()
                 }
             } else {
                 if (imagesList.isNotEmpty()) {
-                    ImageStack(images = imagesList)
+                    ImageStack(
+                        images = imagesList.toList(),
+                        onClick = {
+                            showViewPager = true
+                        }
+                    )
                     imagesList.clear()
                 }
 
@@ -213,69 +226,116 @@ private fun Main(scrapnel: ScrapnelEntity?) {
                 )
             }
         }
+
         if (imagesList.isNotEmpty()) {
-            ImageStack(images = imagesList)
+            ImageStack(
+                images = imagesList.toList(),
+                onClick = {
+                    showViewPager = true
+                }
+            )
         }
+
+
     }
-
-}
-
-@Composable
-private fun ImageStack(images: List<Uri>) {
-
-    if (images.size == 1) {
-        SingleImageView(images.first())
-    } else {
-        //    val rearrangedImages = remember {images.toMutableList()}
-        val rearrangedImages = remember {
-            mutableStateListOf<Uri>().apply { addAll(images) }
-        }
-
-        val imageHeight = 150.dp
-        val offsetPerImage = 20.dp
-        val maxHeight = imageHeight + (rearrangedImages.size - 1) * offsetPerImage
+    if (showViewPager && pagerImageList.isNotEmpty()) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(maxHeight)
-                .padding(vertical = 10.dp),
-            contentAlignment = Alignment.BottomCenter
+                .fillMaxSize().
+                    align (Alignment.Center)
+                .clickable { showViewPager = false },
+            contentAlignment = Alignment.Center
         ) {
-            rearrangedImages.forEachIndexed { index, uri ->
+            ViewPagerScreen(
+                imageList = pagerImageList,
 
-                val offsetAmount = (rearrangedImages.size - 1 - index) * 20.dp
-                val rotationAngle = (rearrangedImages.size - 1 - index) * 10f
+                )
+        }
 
-                val isTop = index == rearrangedImages.lastIndex
+    }
+}
+}
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                    ImageCard(
-                        uri = uri,
-                        contentDescription = "$uri",
-                        modifier = Modifier
-                            .offset(y = -offsetAmount, x = -offsetAmount)
-                            .graphicsLayer { rotationZ = -rotationAngle }
-                            .then(if (isTop) Modifier.clickable {
-                                val top = rearrangedImages.removeLast()
-                                rearrangedImages.add(0, top)
+
+@Composable
+private fun ImageStack(images: List<Uri>, onClick: () -> Unit) {
+    Box(modifier = Modifier.clickable { onClick() }) {
+        if (images.size == 1) {
+            SingleImageView(images.first())
+        } else {
+            val rearrangedImages = remember {
+                mutableStateListOf<Uri>().apply { addAll(images) }
+            }
+
+            val imageHeight = 150.dp
+            val offsetPerImage = 20.dp
+            val maxHeight = imageHeight + (rearrangedImages.size - 1) * offsetPerImage
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(maxHeight)
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                rearrangedImages.forEachIndexed { index, uri ->
+                    val size = rearrangedImages.size
+                    val middleIndex = size / 2
+
+                    val (xOffset, zRotation) = when {
+                        size == 2 -> {
+                            // For 2 images, slide both (one right, one left)
+                            if (index == 0) {
+                                30.dp to 20f
+                            } else {
+                                (-30).dp to -20f
                             }
-                            else Modifier)
-                    )
-                } else {
+                        }
+                        size % 2 == 1 -> {
+                            // Odd number of images - middle image straight, others slide
+                            val isMiddle = index == middleIndex
+                            val isLeft = index > middleIndex
+                            val isRight = index < middleIndex
+
+                            val offsetAmount = (kotlin.math.abs(index - middleIndex)) * 30.dp
+                            val rotationAngle = (kotlin.math.abs(index - middleIndex)) * 20f
+
+                            when {
+                                isLeft -> -offsetAmount to -rotationAngle
+                                isRight -> offsetAmount to rotationAngle
+                                else -> 0.dp to 0f
+                            }
+                        }
+                        else -> {
+                            // Even number > 2 fallback, slide images with offset and rotation
+                            val offsetAmount = (kotlin.math.abs(index - middleIndex)) * 30.dp
+                            val rotationAngle = (kotlin.math.abs(index - middleIndex)) * 20f
+                            val isLeft = index > middleIndex
+                            val isRight = index < middleIndex
+
+                            when {
+                                isLeft -> -offsetAmount to -rotationAngle
+                                isRight -> offsetAmount to rotationAngle
+                                else -> 0.dp to 0f
+                            }
+                        }
+                    }
+
                     ImageCard(
                         uri = uri,
                         contentDescription = "$uri",
                         modifier = Modifier
-                            .offset(y = -offsetAmount, x = -offsetAmount)
-                            .graphicsLayer { rotationZ = -rotationAngle }
+                            .offset(x = xOffset)
+                            .graphicsLayer { rotationZ = zRotation }
                     )
                 }
-
-
             }
         }
     }
 }
+
+
+
 
 @Composable
 private fun ImageCard(
@@ -387,3 +447,115 @@ fun SingleImageView(uri: Uri) {
         }
     }
 }
+
+
+
+@Composable
+fun ViewPagerScreen(imageList: List<Uri>) {
+
+    var selectedImage by remember { mutableStateOf<Uri?>(null) }
+
+    val pagerState = rememberPagerState(
+        initialPage = Int.MAX_VALUE / 2,
+        pageCount = { Int.MAX_VALUE }
+    )
+    Box(Modifier.fillMaxSize()) {
+        val pageOffset = pagerState.currentPageOffsetFraction
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(15.dp),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .graphicsLayer {
+                    translationX = -pageOffset * (131f + 20f) / 2f
+                }
+        ) {
+            imageList.forEach { _ ->
+                ImageBack(
+                    modifier = Modifier
+
+                )
+            }
+        }
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 80.dp),
+            pageSpacing = 16.dp
+        ) { page ->
+
+            val realPage = page % imageList.size
+
+            val scale = when {
+                page == pagerState.currentPage -> 1f
+                else -> 0.8f
+            }
+
+            val rotationYi = when {
+                page < pagerState.currentPage -> -30f // left image rotates left
+                page > pagerState.currentPage -> 30f // right image rotates right
+                else -> 0f // middle image no rotation
+            }
+
+            ImagePagers(
+                image = imageList[realPage],
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        rotationY = rotationYi
+                    }
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.LightGray)
+                    .clickable {
+                        selectedImage = imageList[realPage]
+                    }
+            )
+        }
+    }
+    if (selectedImage != null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.9f))
+                .clickable { selectedImage = null },
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = selectedImage,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .fillMaxHeight(0.8f)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Fit
+            )
+        }
+    }
+
+}
+
+@Composable
+fun ImagePagers(image: Uri, modifier: Modifier ) {
+    AsyncImage(
+        model = image,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+
+    )
+}
+
+@Composable
+private fun ImageBack(modifier: Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .height(150.dp)
+            .width(100.dp)
+            .background(color = Color.Gray)
+
+    )
+}
+

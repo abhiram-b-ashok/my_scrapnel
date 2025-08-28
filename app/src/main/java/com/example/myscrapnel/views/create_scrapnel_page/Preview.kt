@@ -176,37 +176,62 @@ private fun ImageStack(images: List<Uri>) {
             contentAlignment = Alignment.BottomCenter
         ) {
             rearrangedImages.forEachIndexed { index, uri ->
-                val offsetAmount = (rearrangedImages.size - 1 - index) * 20.dp
-                val rotationAngle = (rearrangedImages.size - 1 - index) * 10f
-                val isTop = index == rearrangedImages.lastIndex
+                val size = rearrangedImages.size
+                val middleIndex = size / 2
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                    ImageCard(
-                        uri = uri,
-                        contentDescription = "$uri",
-                        modifier = Modifier
-                            .offset(y = -offsetAmount, x = -offsetAmount)
-                            .graphicsLayer { rotationZ = -rotationAngle }
-                            .then(if (isTop) Modifier.clickable {
-                                val top = rearrangedImages.removeLast()
-                                rearrangedImages.add(0, top)
-                            } else Modifier)
-                    )
-                } else {
-                    ImageCard(
-                        uri = uri,
-                        contentDescription = "$uri",
-                        modifier = Modifier
-                            .offset(y = -offsetAmount, x = -offsetAmount)
-                            .graphicsLayer { rotationZ = -rotationAngle }
-                    )
+                val (xOffset, zRotation) = when {
+                    size == 2 -> {
+                        // For 2 images, slide both:
+                        if (index == 0) {
+                            30.dp to 20f  // first image slide right + rotate right
+                        } else {
+                            (-30).dp to -20f  // second image slide left + rotate left
+                        }
+                    }
+                    size % 2 == 1 -> {
+                        // Odd number of images - keep your original logic
+                        val isMiddle = index == middleIndex
+                        val isLeft = index > middleIndex
+                        val isRight = index < middleIndex
+
+                        val offsetAmount = (kotlin.math.abs(index - middleIndex)) * 20.dp
+                        val rotationAngle = (kotlin.math.abs(index - middleIndex)) * 15f
+
+                        when {
+                            isLeft -> -offsetAmount to -rotationAngle
+                            isRight -> offsetAmount to rotationAngle
+                            else -> 0.dp to 0f
+                        }
+                    }
+                    else -> {
+                        // For even number > 2, fallback to your existing logic or adjust accordingly
+                        val offsetAmount = (kotlin.math.abs(index - middleIndex)) * 20.dp
+                        val rotationAngle = (kotlin.math.abs(index - middleIndex)) * 15f
+                        val isLeft = index > middleIndex
+                        val isRight = index < middleIndex
+
+                        when {
+                            isLeft -> -offsetAmount to -rotationAngle
+                            isRight -> offsetAmount to rotationAngle
+                            else -> 0.dp to 0f
+                        }
+                    }
                 }
 
 
+                    ImageCard(
+                        uri = uri,
+                        contentDescription = "$uri",
+                        modifier = Modifier
+                            .offset(x = xOffset)
+                            .graphicsLayer { rotationZ = zRotation }
+                    )
+                }
             }
+
         }
     }
-}
+
 
 
 @Composable
@@ -238,7 +263,7 @@ private fun ImageCard(
 }
 
 @Composable
-fun SingleImageView(uri: Uri) {
+private fun SingleImageView(uri: Uri) {
     val context = LocalContext.current
     var isPortrait by remember { mutableStateOf<Boolean?>(null) }
 

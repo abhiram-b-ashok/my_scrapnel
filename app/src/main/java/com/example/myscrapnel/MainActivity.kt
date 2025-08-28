@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
@@ -59,15 +60,19 @@ class MainActivity : ComponentActivity() {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(colorScheme.background) // fill behind nav bar
+                        .background(colorScheme.onTertiary) // fill behind nav bar
                         .padding(WindowInsets.navigationBars.asPaddingValues()) // bottom padding only
                 ) {
                     Scaffold(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Red), // Just for visibility
+                        containerColor = colorScheme.onTertiary, // ← THIS is the actual Scaffold background
                         content = { innerPadding ->
                             Navigation(modifier = Modifier.padding(innerPadding))
                         }
                     )
+
                 }
             }
         }
