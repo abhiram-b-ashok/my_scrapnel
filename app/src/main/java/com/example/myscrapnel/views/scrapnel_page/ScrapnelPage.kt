@@ -1,7 +1,15 @@
 package com.example.myscrapnel.views.scrapnel_page
 
 import android.net.Uri
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,7 +29,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -34,12 +41,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
@@ -293,7 +299,6 @@ private fun ImageStack(images: List<Uri>, onClick: () -> Unit) {
                         }
                         size % 2 == 1 -> {
                             // Odd number of images - middle image straight, others slide
-                            val isMiddle = index == middleIndex
                             val isLeft = index > middleIndex
                             val isRight = index < middleIndex
 
@@ -452,58 +457,96 @@ fun SingleImageView(uri: Uri) {
 
 @Composable
 fun ViewPagerScreen(imageList: List<Uri>) {
-
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
 
+    val initialPage = Int.MAX_VALUE / 2
     val pagerState = rememberPagerState(
-        initialPage = Int.MAX_VALUE / 2,
+        initialPage = initialPage,
         pageCount = { Int.MAX_VALUE }
     )
-    Box(Modifier.fillMaxSize()) {
-        val pageOffset = pagerState.currentPageOffsetFraction
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(15.dp),
+    val itemWidthDp = 131.dp + 15.dp
+    val itemWidthPx = with(LocalDensity.current) { itemWidthDp.toPx() }
+
+    val pageOffset = pagerState.currentPageOffsetFraction
+    val currentPage = pagerState.currentPage
+    val relativeScroll = (currentPage - initialPage) + pageOffset
+
+    val listSize = imageList.size
+
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        val backgroundItemsCount = 50
+
+        Box(
             modifier = Modifier
-                .align(Alignment.Center)
-                .graphicsLayer {
-                    translationX = -pageOffset * (131f + 20f) / 2f
-                }
+                .fillMaxSize()
         ) {
-            imageList.forEach { _ ->
-                ImageBack(
-                    modifier = Modifier
+            for (i in 0 until backgroundItemsCount) {
 
-                )
+                val centerIndex = backgroundItemsCount / 2
+                val offsetFromCenter = (i - centerIndex)
+
+                val baseX = offsetFromCenter * itemWidthPx
+                val scrollShift = relativeScroll * itemWidthPx * 0.2f
+                val totalX = baseX + scrollShift
+
+                    Box(
+                    modifier = Modifier
+                        .size(width = 131.dp, height = 150.dp)
+                        .graphicsLayer {
+                            translationX = totalX
+                        }
+                        .align(Alignment.Center)
+                ) {
+                    ImageBack(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
+
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 80.dp),
             pageSpacing = 16.dp
         ) { page ->
-
-            val realPage = page % imageList.size
-
-            val scale = when {
-                page == pagerState.currentPage -> 1f
-                else -> 0.8f
-            }
+            val realPage = page % listSize
+            val density = LocalDensity.current.density
 
             val rotationYi = when {
-                page < pagerState.currentPage -> -30f // left image rotates left
-                page > pagerState.currentPage -> 30f // right image rotates right
-                else -> 0f // middle image no rotation
+                page < pagerState.currentPage -> -30f
+                page > pagerState.currentPage -> 30f
+                else -> 0f
             }
+
+            val scale = if (page == pagerState.currentPage) 1f else 0.85f
+
+            val animatedRotation by animateFloatAsState(
+                targetValue = rotationYi,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),                label = "rotation"
+            )
+
+            val animatedScale by animateFloatAsState(
+                targetValue = scale,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),                label = "scale"
+            )
 
             ImagePagers(
                 image = imageList[realPage],
                 modifier = Modifier
                     .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        rotationY = rotationYi
+                        scaleX = animatedScale
+                        scaleY = animatedScale
+                        rotationY = animatedRotation
+                        cameraDistance = 12 * density
                     }
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(16.dp))
@@ -513,49 +556,49 @@ fun ViewPagerScreen(imageList: List<Uri>) {
                     }
             )
         }
-    }
-    if (selectedImage != null) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.9f))
-                .clickable { selectedImage = null },
-            contentAlignment = Alignment.Center
-        ) {
-            AsyncImage(
-                model = selectedImage,
-                contentDescription = null,
+
+        if (selectedImage != null) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .fillMaxHeight(0.8f)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Fit
-            )
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { selectedImage = null },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = selectedImage,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .fillMaxHeight(0.8f)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
     }
-
 }
 
+
 @Composable
-fun ImagePagers(image: Uri, modifier: Modifier ) {
+fun ImagePagers(image: Uri, modifier: Modifier) {
     AsyncImage(
         model = image,
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = modifier
-
     )
 }
 
 @Composable
-private fun ImageBack(modifier: Modifier) {
+fun ImageBack(modifier: Modifier) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .height(150.dp)
-            .width(100.dp)
-            .background(color = Color.Gray)
-
+            .background(color = MaterialTheme.colorScheme.onBackground)
     )
 }
+
+
+
 
