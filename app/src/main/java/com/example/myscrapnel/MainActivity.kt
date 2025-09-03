@@ -60,14 +60,14 @@ class MainActivity : ComponentActivity() {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(colorScheme.onTertiary) // fill behind nav bar
+                        .background(colorScheme.background) // fill behind nav bar
                         .padding(WindowInsets.navigationBars.asPaddingValues()) // bottom padding only
                 ) {
                     Scaffold(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Red), // Just for visibility
-                        containerColor = colorScheme.onTertiary, // ← THIS is the actual Scaffold background
+                        containerColor = colorScheme.background, // ← THIS is the actual Scaffold background
                         content = { innerPadding ->
                             Navigation(modifier = Modifier.padding(innerPadding))
                         }

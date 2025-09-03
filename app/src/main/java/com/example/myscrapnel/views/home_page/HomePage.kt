@@ -635,7 +635,7 @@ fun ScrapnelCard(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
                                     MaterialTheme.colorScheme.primary.copy(alpha = 1f),
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0f)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                                 )
                             )
                         )

@@ -1,6 +1,8 @@
 package com.example.myscrapnel.views.scrapnel_page
 
+import android.annotation.SuppressLint
 import android.net.Uri
+import android.util.Log
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -55,6 +57,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import androidx.core.net.toUri
@@ -174,7 +177,14 @@ Box() {
         verticalArrangement = Arrangement.Top
     ) {
         val imagesList = mutableListOf<Uri>()
-
+        LaunchedEffect(scrapnel) {
+            pagerImageList.clear()
+            content?.lines()?.forEach { line ->
+                if (line.contains("🖼️")) {
+                    pagerImageList.add(line.drop(4).toUri())
+                }
+            }
+        }
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = if (title.isNullOrEmpty()) "Untitled" else title,
@@ -200,7 +210,7 @@ Box() {
             if (line.contains("🖼️")) {
                 val uri = line.drop(4).toUri()
                 imagesList.add(uri)
-                pagerImageList.add(uri)
+//                pagerImageList.add(uri)
 
                 if (imagesList.size == 3) {
                     ImageStack(
@@ -252,10 +262,16 @@ Box() {
                 .clickable { showViewPager = false },
             contentAlignment = Alignment.Center
         ) {
-            ViewPagerScreen(
-                imageList = pagerImageList,
 
-                )
+            Log.d("shankoliyt", "Main: ${pagerImageList.size}")
+            when (pagerImageList.size) {
+                1 -> ViewPageForSingleImage(pagerImageList)
+                2 -> ViewPagerForTwoImage(pagerImageList)
+                3 -> ViewPagerForThreeImage(pagerImageList)
+                4 -> ViewPagerForFourImage(pagerImageList)
+                else -> ViewPagerScreen(pagerImageList)
+            }
+
         }
 
     }
@@ -455,6 +471,7 @@ fun SingleImageView(uri: Uri) {
 
 
 
+@SuppressLint("SuspiciousIndentation")
 @Composable
 fun ViewPagerScreen(imageList: List<Uri>) {
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
@@ -474,6 +491,7 @@ fun ViewPagerScreen(imageList: List<Uri>) {
 
     val listSize = imageList.size
 
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         val backgroundItemsCount = 50
@@ -488,7 +506,7 @@ fun ViewPagerScreen(imageList: List<Uri>) {
                 val offsetFromCenter = (i - centerIndex)
 
                 val baseX = offsetFromCenter * itemWidthPx
-                val scrollShift = relativeScroll * itemWidthPx * 0.2f
+                val scrollShift = relativeScroll * itemWidthPx * 0.8f
                 val totalX = baseX + scrollShift
 
                     Box(
@@ -511,7 +529,9 @@ fun ViewPagerScreen(imageList: List<Uri>) {
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 80.dp),
             pageSpacing = 16.dp
-        ) { page ->
+        )
+        { page ->
+
             val realPage = page % listSize
             val density = LocalDensity.current.density
 
@@ -527,7 +547,7 @@ fun ViewPagerScreen(imageList: List<Uri>) {
                 targetValue = rotationYi,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium
+                    stiffness = Spring.StiffnessLow
                 ),                label = "rotation"
             )
 
@@ -535,7 +555,7 @@ fun ViewPagerScreen(imageList: List<Uri>) {
                 targetValue = scale,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessMedium
+                    stiffness = Spring.StiffnessLow
                 ),                label = "scale"
             )
 
@@ -598,6 +618,417 @@ fun ImageBack(modifier: Modifier) {
             .background(color = MaterialTheme.colorScheme.onBackground)
     )
 }
+
+
+
+
+@Composable
+fun ViewPagerForFourImage(list: List<Uri>) {
+    var selectedImage by remember { mutableStateOf<Uri?>(null) }
+
+    val initialPage = Int.MAX_VALUE / 2
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { Int.MAX_VALUE }
+    )
+
+    val itemWidthDp = 200.dp + 220.dp
+    val itemWidthPx = with(LocalDensity.current) { itemWidthDp.toPx() }
+
+    val pageOffset = pagerState.currentPageOffsetFraction
+    val currentPage = pagerState.currentPage
+    val relativeScroll = (currentPage - initialPage) + pageOffset
+
+    val listSize = list.size
+    Box(modifier = Modifier.fillMaxSize()) {
+        val backgroundItemsCount = 20
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            for (i in 0 until backgroundItemsCount) {
+
+                val centerIndex = backgroundItemsCount / 2
+                val offsetFromCenter = (i - centerIndex)
+
+                val baseX = offsetFromCenter * itemWidthPx
+                val scrollShift = relativeScroll * itemWidthPx * 1f
+                val totalX = baseX + scrollShift
+
+                Box(
+                    modifier = Modifier
+                        .size(width = 200.dp, height = 200.dp)
+                        .graphicsLayer {
+                            translationX = totalX
+                        }
+                        .align(Alignment.Center)
+                ) {
+                    ImageBack(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal =90.dp),
+            pageSpacing = 36.dp
+        )
+        { page ->
+
+            val realPage = page % listSize
+
+            val rotationYi = when {
+                page < pagerState.currentPage -> -45f
+                page > pagerState.currentPage -> 45f
+                else -> 0f
+            }
+
+            val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+
+            val scale = 1f - 0.15f * kotlin.math.min(1f, kotlin.math.abs(pageOffset))
+
+            val animatedRotation by animateFloatAsState(
+                targetValue = rotationYi,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),                label = "rotation"
+            )
+
+            val animatedScale by animateFloatAsState(
+                targetValue = scale,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "scale"
+            )
+
+
+            ImagePagers(
+                image = list[realPage],
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = animatedScale
+                        scaleY = animatedScale
+                        rotationY = animatedRotation
+                    }
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.LightGray)
+                    .clickable {
+                        selectedImage = list[realPage]
+                    }
+            )
+        }
+        if (selectedImage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { selectedImage = null },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = selectedImage,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .fillMaxHeight(0.8f)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
+    }
+}
+
+
+
+@Composable
+fun ViewPagerForTwoImage(list: List<Uri>) {
+    var selectedImage by remember { mutableStateOf<Uri?>(null) }
+
+    val initialPage = Int.MAX_VALUE / 2
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { Int.MAX_VALUE }
+    )
+
+    val itemWidthDp = 200.dp + 220.dp
+    val itemWidthPx = with(LocalDensity.current) { itemWidthDp.toPx() }
+
+    val pageOffset = pagerState.currentPageOffsetFraction
+    val currentPage = pagerState.currentPage
+    val relativeScroll = (currentPage - initialPage) + pageOffset
+
+    val listSize = list.size
+
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        val backgroundItemsCount = 50
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            for (i in 0 until backgroundItemsCount) {
+
+                val centerIndex = backgroundItemsCount / 2
+                val offsetFromCenter = (i - centerIndex)
+
+                val baseX = offsetFromCenter * itemWidthPx
+                val scrollShift = relativeScroll * itemWidthPx * 1f
+                val totalX = baseX + scrollShift
+
+                Box(
+                    modifier = Modifier
+                        .size(width = 200.dp, height = 200.dp)
+                        .graphicsLayer {
+                            translationX = totalX
+                        }
+                        .align(Alignment.Center)
+                ) {
+                    ImageBack(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 100.dp),
+            pageSpacing = 186.dp
+        ){page ->
+
+            val realPage = page % listSize
+            val density = LocalDensity.current.density
+
+            val rotationYi = when {
+                page < pagerState.currentPage -> -40f
+                page > pagerState.currentPage -> 40f
+                else -> 0f
+            }
+            val rotationZi = when{
+                page == pagerState.currentPage -> 360f
+                else -> 0f
+            }
+
+            val scale = if (page == pagerState.currentPage) 1f else 0.85f
+
+            val animatedRotation by animateFloatAsState(
+                targetValue = rotationYi,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),                label = "rotation"
+            )
+
+            val animatedScale by animateFloatAsState(
+                targetValue = scale,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),                label = "scale"
+            )
+
+            ImagePagers(
+                image = list[realPage],
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = animatedScale
+                        scaleY = animatedScale
+                        rotationY = animatedRotation
+                        rotationZ = rotationZi
+                    }
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.LightGray)
+                    .clickable {
+                        selectedImage = list[realPage]
+                    }
+            )
+        }
+        if (selectedImage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { selectedImage = null },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = selectedImage,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .fillMaxHeight(0.8f)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ViewPageForSingleImage(list: List<Uri>)
+{
+    var selectedImage by remember { mutableStateOf<Uri?>(list[0]) }
+    if (selectedImage != null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.9f))
+                .clickable { selectedImage = null },
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = selectedImage,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .fillMaxHeight(0.8f)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Fit
+            )
+        }
+    }
+
+}
+
+@Composable
+fun ViewPagerForThreeImage(list: List<Uri>) {
+    var selectedImage by remember { mutableStateOf<Uri?>(null) }
+
+    val initialPage = Int.MAX_VALUE / 2
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { Int.MAX_VALUE }
+    )
+
+    val itemWidthDp = 300.dp
+    val itemWidthPx = with(LocalDensity.current) { itemWidthDp.toPx() }
+
+    val pageOffset = pagerState.currentPageOffsetFraction
+    val currentPage = pagerState.currentPage
+    val relativeScroll = (currentPage - initialPage) + pageOffset * 1.5f
+
+    val listSize = list.size
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        val backgroundItemsCount = 50
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            for (i in 0 until backgroundItemsCount) {
+                val centerIndex = (backgroundItemsCount / 2)
+                val offsetFromCenter = (i - centerIndex)
+
+                val baseX = offsetFromCenter * itemWidthPx
+                val scrollShift = relativeScroll * itemWidthPx
+                val totalX = baseX + scrollShift
+
+                Box(
+                    modifier = Modifier
+                        .size(width = 200.dp, height = 200.dp)
+                        .graphicsLayer {
+                            translationX = totalX - 100.dp.toPx()
+                        }
+                        .align(Alignment.Center)
+                ) {
+                    ImageBack(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 100.dp),
+            pageSpacing = 186.dp
+        ) { page ->
+            val realPage = page % listSize
+            val density = LocalDensity.current.density
+
+            val rotationYi = when {
+                page < pagerState.currentPage -> -40f
+                page > pagerState.currentPage -> 40f
+                else -> 0f
+            }
+            val rotationZi = when {
+                page == pagerState.currentPage -> 360f
+                else -> 0f
+            }
+
+            val scale = if (page == pagerState.currentPage) 1f else 0.85f
+
+            val animatedRotation by animateFloatAsState(
+                targetValue = rotationYi,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "rotation"
+            )
+
+            val animatedScale by animateFloatAsState(
+                targetValue = scale,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "scale"
+            )
+
+            ImagePagers(
+                image = list[realPage],
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = animatedScale
+                        scaleY = animatedScale
+                        rotationY = animatedRotation
+                        rotationZ = rotationZi
+                    }
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.LightGray)
+                    .clickable {
+                        selectedImage = list[realPage]
+                    }
+            )
+        }
+
+        if (selectedImage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { selectedImage = null },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = selectedImage,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .fillMaxHeight(0.8f)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
+    }
+}
+
 
 
 
